@@ -48,7 +48,7 @@ const KanbanColumn = ({ stage, deals }: { stage: DealStage; deals: Deal[] }) => 
   const totalValue = deals.reduce((sum, deal) => sum + deal.value, 0);
 
   return (
-    <div className="flex flex-col w-full md:w-80 shrink-0">
+    <div className="flex flex-col w-full shrink-0">
       <div className="flex items-center justify-between p-2 mb-4">
         <div className="flex items-center gap-2">
           <div className={cn('h-2.5 w-2.5 rounded-full', stageColors[stage])} />
@@ -59,10 +59,12 @@ const KanbanColumn = ({ stage, deals }: { stage: DealStage; deals: Deal[] }) => 
           ${new Intl.NumberFormat('es-CL', { notation: 'compact' }).format(totalValue)}
         </span>
       </div>
-      <div className="flex-1 p-2 bg-card/50 rounded-lg min-h-[200px] overflow-y-auto">
+      <div className="flex-1 p-2 bg-card/50 rounded-lg min-h-[100px] overflow-y-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {deals.map((deal) => (
           <DealCard key={deal.id} deal={deal} />
         ))}
+        </div>
       </div>
     </div>
   );
@@ -70,7 +72,7 @@ const KanbanColumn = ({ stage, deals }: { stage: DealStage; deals: Deal[] }) => 
 
 export const KanbanBoard = () => {
   return (
-    <div className="flex gap-6 overflow-x-auto pb-4">
+    <div className="flex flex-col gap-8">
       {dealStages.map((stage) => {
         const stageDeals = deals.filter((deal) => deal.stage === stage);
         return <KanbanColumn key={stage} stage={stage} deals={stageDeals} />;
