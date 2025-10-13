@@ -29,30 +29,30 @@ export default function CompaniesPage() {
   return (
     <>
       <PageHeader
-        title="Companies"
-        description="Manage company profiles and associated contacts and deals."
+        title="Empresas"
+        description="Gestiona perfiles de empresas y sus contactos y tratos asociados."
       >
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          New Company
+          Nueva Empresa
         </Button>
       </PageHeader>
       <Card>
         <CardHeader>
-          <CardTitle>Company List</CardTitle>
+          <CardTitle>Lista de Empresas</CardTitle>
           <CardDescription>
-            A list of all companies in your CRM.
+            Un listado de todas las empresas en tu CRM.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Company</TableHead>
-                <TableHead>Industry</TableHead>
-                <TableHead>Domain</TableHead>
+                <TableHead>Empresa</TableHead>
+                <TableHead>Industria</TableHead>
+                <TableHead>Dominio</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">Acciones</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -79,10 +79,10 @@ export default function CompaniesPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>View</DropdownMenuItem>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuItem>Ver</DropdownMenuItem>
+                        <DropdownMenuItem>Editar</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">
-                          Delete
+                          Eliminar
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

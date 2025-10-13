@@ -57,12 +57,12 @@ const HiperFlowLogo = () => (
 );
 
 const navItems = [
-  { href: '/', label: 'Deals', icon: LayoutGrid },
-  { href: '/contacts', label: 'Contacts', icon: Users },
-  { href: '/companies', label: 'Companies', icon: Briefcase },
-  { href: '/activities', label: 'Activities', icon: History },
-  { href: '/inbox', label: 'Inbox', icon: Mail },
-  { href: '/social', label: 'Social', icon: PenSquare },
+  { href: '/', label: 'Tratos', icon: LayoutGrid },
+  { href: '/contacts', label: 'Contactos', icon: Users },
+  { href: '/companies', label: 'Empresas', icon: Briefcase },
+  { href: '/activities', label: 'Actividades', icon: History },
+  { href: '/inbox', label: 'Bandeja de Entrada', icon: Mail },
+  { href: '/social', label: 'Redes Sociales', icon: PenSquare },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -127,12 +127,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuItem>Configuración</DropdownMenuItem>
+              <DropdownMenuItem>Soporte</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem>Cerrar Sesión</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>

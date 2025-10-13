@@ -21,9 +21,9 @@ import { Mail, Phone, StickyNote, Video } from 'lucide-react';
 
 const activityIcons: Record<Activity['type'], React.ElementType> = {
   Email: Mail,
-  Call: Phone,
-  Meeting: Video,
-  Note: StickyNote,
+  Llamada: Phone,
+  Reunión: Video,
+  Nota: StickyNote,
 };
 
 export default function ActivitiesPage() {
@@ -33,25 +33,25 @@ export default function ActivitiesPage() {
   return (
     <>
       <PageHeader
-        title="Activity Log"
-        description="A chronological log of all interactions with your contacts."
+        title="Registro de Actividad"
+        description="Un registro cronológico de todas las interacciones con tus contactos."
       />
       <Card>
         <CardHeader>
-          <CardTitle>All Activities</CardTitle>
+          <CardTitle>Todas las Actividades</CardTitle>
           <CardDescription>
-            Browse through emails, calls, meetings, and notes.
+            Navega a través de correos, llamadas, reuniones y notas.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Contact</TableHead>
-                <TableHead>Deal</TableHead>
-                <TableHead>Notes</TableHead>
-                <TableHead>Date</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Contacto</TableHead>
+                <TableHead>Trato</TableHead>
+                <TableHead>Notas</TableHead>
+                <TableHead>Fecha</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

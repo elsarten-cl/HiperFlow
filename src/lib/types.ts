@@ -18,7 +18,7 @@ export type Company = {
   industry: string;
 };
 
-export type DealStage = 'Lead' | 'Contacted' | 'Proposal' | 'Negotiation' | 'Won' | 'Lost';
+export type DealStage = 'Potencial' | 'Contactado' | 'Propuesta' | 'Negociación' | 'Ganado' | 'Perdido';
 
 export type Deal = {
   id: string;
@@ -31,7 +31,7 @@ export type Deal = {
 
 export type Activity = {
   id: string;
-  type: 'Email' | 'Call' | 'Meeting' | 'Note';
+  type: 'Email' | 'Llamada' | 'Reunión' | 'Nota';
   contactId: string;
   dealId?: string;
   timestamp: string;

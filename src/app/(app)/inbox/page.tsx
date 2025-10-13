@@ -61,8 +61,8 @@ const MessageView = ({ conversation }: { conversation: Conversation | undefined 
     return (
       <div className="flex h-full flex-col items-center justify-center text-center">
         <MessageSquare className="h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">No Conversation Selected</h3>
-        <p className="text-muted-foreground">Select a conversation from the left to view messages.</p>
+        <h3 className="mt-4 text-lg font-semibold">No se ha seleccionado ninguna conversación</h3>
+        <p className="text-muted-foreground">Selecciona una conversación de la izquierda para ver los mensajes.</p>
       </div>
     );
   }
@@ -78,7 +78,7 @@ const MessageView = ({ conversation }: { conversation: Conversation | undefined 
         </Avatar>
         <div>
           <p className="font-semibold">{contact.name}</p>
-          <p className="text-sm text-muted-foreground">{contact.jobTitle}{companyName && ` at ${companyName}`}</p>
+          <p className="text-sm text-muted-foreground">{contact.jobTitle}{companyName && ` en ${companyName}`}</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
             <Button variant="outline" size="icon"><Phone className="h-4 w-4"/></Button>
@@ -100,10 +100,10 @@ const MessageView = ({ conversation }: { conversation: Conversation | undefined 
         ))}
       </div>
       <div className="mt-auto flex items-center gap-2 border-t p-4">
-        <Input placeholder="Type a message..." className="flex-1" />
+        <Input placeholder="Escribe un mensaje..." className="flex-1" />
         <Button>
           <Send className="h-4 w-4" />
-          <span className="sr-only">Send</span>
+          <span className="sr-only">Enviar</span>
         </Button>
       </div>
     </div>
@@ -121,12 +121,12 @@ export default function InboxPage() {
 
   return (
     <>
-      <PageHeader title="Unified Inbox" description="Manage conversations across all your channels." />
+      <PageHeader title="Bandeja de Entrada Unificada" description="Gestiona conversaciones de todos tus canales." />
       <Card className="h-[calc(100vh-12rem)]">
         <CardContent className="p-0 h-full">
           <div className="grid h-full grid-cols-1 md:grid-cols-[300px_1fr]">
             <div className="border-r p-2">
-              <h2 className="p-2 text-lg font-headline font-semibold">Conversations</h2>
+              <h2 className="p-2 text-lg font-headline font-semibold">Conversaciones</h2>
               <Separator className="my-2" />
               <ConversationList
                 onSelectConversation={setSelectedContactId}

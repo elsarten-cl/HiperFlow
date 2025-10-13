@@ -20,8 +20,8 @@ export default function SocialPage() {
   const handleGeneratePost = async () => {
     if (!topic.trim()) {
       toast({
-        title: 'Topic is empty',
-        description: 'Please describe the topic for your social media post.',
+        title: 'El tema está vacío',
+        description: 'Por favor, describe el tema para tu publicación en redes sociales.',
         variant: 'destructive',
       });
       return;
@@ -31,12 +31,12 @@ export default function SocialPage() {
     try {
       const result = await generateSocialMediaPost({ topicDescription: topic });
       setGeneratedPost(result.postContent);
-      toast({ title: 'Post generated successfully!' });
+      toast({ title: '¡Publicación generada con éxito!' });
     } catch (error) {
       console.error(error);
       toast({
-        title: 'Failed to generate post',
-        description: 'An error occurred while communicating with the AI.',
+        title: 'Error al generar la publicación',
+        description: 'Ocurrió un error al comunicarse con la IA.',
         variant: 'destructive',
       });
     } finally {
@@ -47,29 +47,29 @@ export default function SocialPage() {
   const handleCopyToClipboard = () => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(generatedPost);
-      toast({ title: 'Copied to clipboard!' });
+      toast({ title: '¡Copiado al portapapeles!' });
     }
   };
 
   return (
     <>
       <PageHeader
-        title="AI Social Scheduler"
-        description="Generate and schedule engaging social media posts with AI."
+        title="Programador Social con IA"
+        description="Genera y programa publicaciones atractivas para redes sociales con IA."
       />
       <div className="grid gap-8 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Content Generator</CardTitle>
+            <CardTitle>Generador de Contenido</CardTitle>
             <CardDescription>
-              Describe your topic and let AI create a post for you.
+              Describe tu tema y deja que la IA cree una publicación para ti.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid w-full gap-1.5">
-              <Label htmlFor="topic">Topic Description</Label>
+              <Label htmlFor="topic">Descripción del Tema</Label>
               <Textarea
-                placeholder="e.g., Announce our new integration with Stripe for seamless payments."
+                placeholder="Ej: Anunciar nuestra nueva integración con Stripe para pagos fluidos."
                 id="topic"
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
@@ -80,14 +80,14 @@ export default function SocialPage() {
           <CardFooter>
             <Button onClick={handleGeneratePost} disabled={isLoading}>
               <Sparkles className="mr-2 h-4 w-4" />
-              {isLoading ? 'Generating...' : 'Generate Post'}
+              {isLoading ? 'Generando...' : 'Generar Publicación'}
             </Button>
           </CardFooter>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Generated Post</CardTitle>
-            <CardDescription>Review, edit, and schedule your post.</CardDescription>
+            <CardTitle>Publicación Generada</CardTitle>
+            <CardDescription>Revisa, edita y programa tu publicación.</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -98,7 +98,7 @@ export default function SocialPage() {
               </div>
             ) : (
               <Textarea
-                placeholder="Your generated post will appear here..."
+                placeholder="Tu publicación generada aparecerá aquí..."
                 value={generatedPost}
                 onChange={(e) => setGeneratedPost(e.target.value)}
                 rows={8}
@@ -109,11 +109,11 @@ export default function SocialPage() {
           <CardFooter className="flex justify-end gap-2">
             <Button variant="outline" onClick={handleCopyToClipboard} disabled={!generatedPost}>
               <Copy className="mr-2 h-4 w-4" />
-              Copy
+              Copiar
             </Button>
             <Button disabled={!generatedPost}>
               <CalendarPlus className="mr-2 h-4 w-4" />
-              Schedule Post
+              Programar Publicación
             </Button>
           </CardFooter>
         </Card>

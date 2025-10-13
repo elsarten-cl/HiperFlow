@@ -9,12 +9,12 @@ import { cn } from '@/lib/utils';
 import { DollarSign, UserCircle } from 'lucide-react';
 
 const stageColors: Record<DealStage, string> = {
-  Lead: 'bg-chart-1',
-  Contacted: 'bg-chart-2',
-  Proposal: 'bg-chart-3',
-  Negotiation: 'bg-chart-4',
-  Won: 'bg-accent',
-  Lost: 'bg-destructive',
+  'Potencial': 'bg-chart-1',
+  'Contactado': 'bg-chart-2',
+  'Propuesta': 'bg-chart-3',
+  'Negociación': 'bg-chart-4',
+  'Ganado': 'bg-accent',
+  'Perdido': 'bg-destructive',
 };
 
 const DealCard = ({ deal }: { deal: Deal }) => {
@@ -27,7 +27,7 @@ const DealCard = ({ deal }: { deal: Deal }) => {
       <CardContent className="p-4 pt-0">
         <div className="flex items-center text-sm text-muted-foreground">
           <DollarSign className="mr-1.5 h-4 w-4" />
-          <span>{new Intl.NumberFormat('en-US').format(deal.value)}</span>
+          <span>{new Intl.NumberFormat('es-CL').format(deal.value)}</span>
         </div>
       </CardContent>
       <CardFooter className="p-4 pt-0 flex justify-between items-center">
@@ -56,7 +56,7 @@ const KanbanColumn = ({ stage, deals }: { stage: DealStage; deals: Deal[] }) => 
           <Badge variant="secondary" className="rounded-full">{deals.length}</Badge>
         </div>
         <span className="text-sm font-medium text-muted-foreground">
-          ${new Intl.NumberFormat('en-US', { notation: 'compact' }).format(totalValue)}
+          ${new Intl.NumberFormat('es-CL', { notation: 'compact' }).format(totalValue)}
         </span>
       </div>
       <div className="flex-1 p-2 bg-card/50 rounded-lg min-h-[200px] overflow-y-auto">

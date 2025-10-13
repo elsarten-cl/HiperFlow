@@ -49,13 +49,13 @@ const ContactForm = ({ contact, onSave, onCancel }: { contact?: Contact | null; 
           city: result.city || prev.city,
           country: result.country || prev.country,
         }));
-        toast({ title: "Contact enriched!", description: "AI has filled in missing details." });
+        toast({ title: "¡Contacto enriquecido!", description: "La IA ha rellenado los detalles que faltaban." });
       } else {
-        toast({ title: "Enrichment failed", description: "Could not find additional information.", variant: 'destructive' });
+        toast({ title: "Falló el enriquecimiento", description: "No se pudo encontrar información adicional.", variant: 'destructive' });
       }
     } catch (error) {
       console.error(error);
-      toast({ title: "An error occurred", description: "Failed to enrich contact information.", variant: 'destructive' });
+      toast({ title: "Ocurrió un error", description: "No se pudo enriquecer la información del contacto.", variant: 'destructive' });
     } finally {
       setIsEnriching(false);
     }
@@ -69,7 +69,7 @@ const ContactForm = ({ contact, onSave, onCancel }: { contact?: Contact | null; 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">Nombre</Label>
         <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
       </div>
       <div className="space-y-2">
@@ -77,29 +77,29 @@ const ContactForm = ({ contact, onSave, onCancel }: { contact?: Contact | null; 
         <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="jobTitle">Job Title</Label>
+        <Label htmlFor="jobTitle">Cargo</Label>
         <Input id="jobTitle" name="jobTitle" value={formData.jobTitle} onChange={handleChange} />
       </div>
        <div className="space-y-2">
-        <Label htmlFor="linkedinProfile">LinkedIn Profile</Label>
+        <Label htmlFor="linkedinProfile">Perfil de LinkedIn</Label>
         <Input id="linkedinProfile" name="linkedinProfile" value={formData.linkedinProfile} onChange={handleChange} />
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="city">City</Label>
+          <Label htmlFor="city">Ciudad</Label>
           <Input id="city" name="city" value={formData.city} onChange={handleChange} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="country">Country</Label>
+          <Label htmlFor="country">País</Label>
           <Input id="country" name="country" value={formData.country} onChange={handleChange} />
         </div>
       </div>
       <SheetFooter className="pt-4">
-        <Button variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button variant="outline" onClick={onCancel}>Cancelar</Button>
         <Button type="button" variant="outline" onClick={handleEnrich} disabled={isEnriching || !formData.name}>
-          <Sparkles className="mr-2 h-4 w-4" /> {isEnriching ? 'Enriching...' : 'Enrich with AI'}
+          <Sparkles className="mr-2 h-4 w-4" /> {isEnriching ? 'Enriqueciendo...' : 'Enriquecer con IA'}
         </Button>
-        <Button type="submit">Save</Button>
+        <Button type="submit">Guardar</Button>
       </SheetFooter>
     </form>
   )
@@ -123,24 +123,24 @@ export default function ContactsPage() {
     };
     setContacts(prev => [newContact, ...prev]);
     setIsSheetOpen(false);
-    toast({ title: 'Contact Created', description: `${newContact.name} has been added.` });
+    toast({ title: 'Contacto Creado', description: `${newContact.name} ha sido agregado.` });
   };
 
   return (
     <>
-      <PageHeader title="Contacts" description="Manage your customer and lead contacts.">
+      <PageHeader title="Contactos" description="Gestiona los contactos de tus clientes y potenciales clientes.">
         <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
           <SheetTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Contact
+              Nuevo Contacto
             </Button>
           </SheetTrigger>
           <SheetContent className="sm:max-w-lg">
             <SheetHeader>
-              <SheetTitle>Create New Contact</SheetTitle>
+              <SheetTitle>Crear Nuevo Contacto</SheetTitle>
               <SheetDescription>
-                Fill in the details below. You can use AI to enrich the data.
+                Rellena los detalles a continuación. Puedes usar la IA para enriquecer los datos.
               </SheetDescription>
             </SheetHeader>
             <div className="py-4">
@@ -151,18 +151,18 @@ export default function ContactsPage() {
       </PageHeader>
       <Card>
         <CardHeader>
-          <CardTitle>Contact List</CardTitle>
-          <CardDescription>A list of all contacts in your CRM.</CardDescription>
+          <CardTitle>Lista de Contactos</CardTitle>
+          <CardDescription>Un listado de todos los contactos en tu CRM.</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Location</TableHead>
-                <TableHead>Last Contacted</TableHead>
-                <TableHead><span className="sr-only">Actions</span></TableHead>
+                <TableHead>Nombre</TableHead>
+                <TableHead>Empresa</TableHead>
+                <TableHead>Ubicación</TableHead>
+                <TableHead>Último Contacto</TableHead>
+                <TableHead><span className="sr-only">Acciones</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -192,9 +192,9 @@ export default function ContactsPage() {
                           <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem>View</DropdownMenuItem>
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                          <DropdownMenuItem>Ver</DropdownMenuItem>
+                          <DropdownMenuItem>Editar</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
