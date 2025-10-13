@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -9,13 +9,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { companies, contacts as initialContacts } from '@/lib/data';
-import type { Contact } from '@/lib/types';
+import type { Contact, Company } from '@/lib/types';
 import { MoreHorizontal, Plus, UserCircle, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { enrichContactData } from '@/ai/flows/enrich-contact-data';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, WithId } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
-const ContactForm = ({ contact, onSave, onCancel }: { contact?: Contact | null; onSave: (contact: Partial<Contact>) => void; onCancel: () => void; }) => {
+const ContactForm = ({ contact, onSave, onCancel, companies }: { contact?: Partial<Contact> | null; onSave: (contact: Partial<Contact>) => void; onCancel: () => void; companies: WithId<Company>[] | null; }) => {
   const [formData, setFormData] = useState({
     name: contact?.name || '',
     email: contact?.email || '',
@@ -23,6 +24,7 @@ const ContactForm = ({ contact, onSave, onCancel }: { contact?: Contact | null; 
     linkedinProfile: contact?.linkedinProfile || '',
     city: contact?.city || '',
     country: contact?.country || '',
+    companyId: contact?.companyId || '',
   });
   const [isEnriching, setIsEnriching] = useState(false);
   const { toast } = useToast();
@@ -37,7 +39,7 @@ const ContactForm = ({ contact, onSave, onCancel }: { contact?: Contact | null; 
     try {
       const result = await enrichContactData({
         name: formData.name,
-        company: companies.find(c => c.id === contact?.companyId)?.name,
+        company: companies?.find(c => c.id === formData.companyId)?.name,
         email: formData.email,
       });
       if (result.enriched) {
@@ -106,22 +108,35 @@ const ContactForm = ({ contact, onSave, onCancel }: { contact?: Contact | null; 
 }
 
 export default function ContactsPage() {
-  const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const { toast } = useToast();
+  const firestore = useFirestore();
+  // Hardcoded teamId for now
+  const teamId = 'team-1';
+
+  const contactsRef = useMemoFirebase(() => collection(firestore, 'teams', teamId, 'contacts'), [firestore, teamId]);
+  const { data: contacts, isLoading: isLoadingContacts } = useCollection<Contact>(contactsRef);
+  
+  const companiesRef = useMemoFirebase(() => collection(firestore, 'teams', teamId, 'companies'), [firestore, teamId]);
+  const { data: companies, isLoading: isLoadingCompanies } = useCollection<Company>(companiesRef);
 
   const handleSaveContact = (formData: Partial<Contact>) => {
-    const newContact: Contact = {
-      id: `cont-${Date.now()}`,
+    const newContact: Omit<WithId<Contact>, 'id'> = {
       name: formData.name || '',
       email: formData.email || '',
       jobTitle: formData.jobTitle || 'N/A',
-      companyId: 'comp-1', // Default or select
+      companyId: formData.companyId || '',
       avatarUrl: `https://picsum.photos/seed/${Date.now()}/40/40`,
       lastContacted: new Date().toISOString(),
+      teamId: teamId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       ...formData
     };
-    setContacts(prev => [newContact, ...prev]);
+
+    const contactsCollection = collection(firestore, 'teams', teamId, 'contacts');
+    addDocumentNonBlocking(contactsCollection, newContact);
+
     setIsSheetOpen(false);
     toast({ title: 'Contacto Creado', description: `${newContact.name} ha sido agregado.` });
   };
@@ -144,7 +159,7 @@ export default function ContactsPage() {
               </SheetDescription>
             </SheetHeader>
             <div className="py-4">
-               <ContactForm onSave={handleSaveContact} onCancel={() => setIsSheetOpen(false)} />
+               <ContactForm onSave={handleSaveContact} onCancel={() => setIsSheetOpen(false)} companies={companies}/>
             </div>
           </SheetContent>
         </Sheet>
@@ -166,41 +181,47 @@ export default function ContactsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {contacts.map((contact) => {
-                const company = companies.find(c => c.id === contact.companyId);
-                const location = [contact.city, contact.country].filter(Boolean).join(', ');
-                return (
-                  <TableRow key={contact.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={contact.avatarUrl} alt={contact.name} />
-                          <AvatarFallback><UserCircle /></AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{contact.name}</div>
-                          <div className="text-sm text-muted-foreground">{contact.email}</div>
+              {isLoadingContacts || isLoadingCompanies ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center">Cargando contactos...</TableCell>
+                </TableRow>
+              ) : (
+                contacts && contacts.map((contact) => {
+                  const company = companies?.find(c => c.id === contact.companyId);
+                  const location = [contact.city, contact.country].filter(Boolean).join(', ');
+                  return (
+                    <TableRow key={contact.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={contact.avatarUrl} alt={contact.name} />
+                            <AvatarFallback><UserCircle /></AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{contact.name}</div>
+                            <div className="text-sm text-muted-foreground">{contact.email}</div>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{company?.name}</TableCell>
-                    <TableCell>{location || 'N/A'}</TableCell>
-                    <TableCell>{new Date(contact.lastContacted).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>Ver</DropdownMenuItem>
-                          <DropdownMenuItem>Editar</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
+                      </TableCell>
+                      <TableCell>{company?.name || 'N/A'}</TableCell>
+                      <TableCell>{location || 'N/A'}</TableCell>
+                      <TableCell>{new Date(contact.lastContacted).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem>Ver</DropdownMenuItem>
+                            <DropdownMenuItem>Editar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>

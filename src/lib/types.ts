@@ -9,6 +9,9 @@ export type Contact = {
   lastContacted: string;
   city?: string;
   country?: string;
+  teamId: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type Company = {
