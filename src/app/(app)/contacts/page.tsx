@@ -18,7 +18,7 @@ import type { Contact, Company } from '@/lib/types';
 import { MoreHorizontal, Plus, UserCircle, BrainCircuit, Rocket, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { enrichContactData } from '@/ai/flows/enrich-contact-data';
-import { useCollection, useFirestore, useMemoFirebase, WithId } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, WithId, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -224,10 +224,10 @@ export default function ContactsPage() {
       toast({ title: 'Error', description: 'La base de datos no está disponible.', variant: 'destructive' });
       return;
     }
-
+  
     const company = companies?.find(c => c.name.toLowerCase() === formData.companyName?.toLowerCase());
     const companyId = company ? company.id : '';
-    
+      
     const newContactData = {
         name: formData.name,
         email: formData.email,
@@ -249,13 +249,23 @@ export default function ContactsPage() {
         updatedAt: serverTimestamp(),
         lastContacted: serverTimestamp(),
     };
-
-    addDoc(collection(firestore, 'contacts'), newContactData).then(() => {
+  
+    const contactsCollection = collection(firestore, 'contacts');
+    
+    addDoc(contactsCollection, newContactData)
+      .then(() => {
         toast({ title: 'Contacto Creado', description: `${newContactData.name} ha sido agregado y sincronizado en HiperFlow.` });
-    }).catch(error => {
-      console.error("Error adding document: ", error);
-      toast({ title: 'Error al Guardar', description: 'No se pudo crear el contacto en la base de datos.', variant: 'destructive' });
-    });
+      })
+      .catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+          path: contactsCollection.path,
+          operation: 'create',
+          requestResourceData: newContactData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+        // Optional: you can still show a generic toast here if you want, but the main error is now being thrown for Next.js to catch.
+        toast({ title: 'Error al Guardar', description: 'No se pudo crear el contacto. Comprueba los permisos.', variant: 'destructive' });
+      });
   };
 
 
