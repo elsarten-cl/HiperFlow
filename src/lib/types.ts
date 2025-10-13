@@ -1,4 +1,4 @@
-import { FieldValue } from "firebase/firestore";
+import { FieldValue, Timestamp } from "firebase/firestore";
 
 export type Contact = {
   id: string;
@@ -9,12 +9,12 @@ export type Contact = {
   avatarUrl: string;
   phone?: string;
   linkedinProfile?: string;
-  lastContacted: string;
+  lastContacted: string | Timestamp;
   city?: string;
   country?: string;
   teamId: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string | Timestamp;
+  updatedAt: string | Timestamp;
   source?: string;
   mainInterest?: string;
   interestLevel?: 'bajo' | 'medio' | 'alto';

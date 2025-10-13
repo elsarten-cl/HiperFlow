@@ -20,7 +20,7 @@ import { MoreHorizontal, Plus, UserCircle, Sparkles, BrainCircuit, Rocket, Save 
 import { useToast } from '@/hooks/use-toast';
 import { enrichContactData } from '@/ai/flows/enrich-contact-data';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, WithId } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -221,16 +221,16 @@ export default function ContactsPage() {
   const companiesRef = useMemoFirebase(() => firestore ? collection(firestore, 'companies') : null, [firestore]);
   const { data: companies, isLoading: isLoadingCompanies } = useCollection<Company>(companiesRef);
 
-  const saveContact = (formData: ContactFormData): string => {
+  const saveContact = (formData: ContactFormData): string | null => {
     if (!firestore) {
       toast({ title: 'Error', description: 'La base de datos no está disponible.', variant: 'destructive' });
-      return '';
+      return null;
     }
 
     // This is a simplified version. In a real app, you'd check if company exists or create it.
     const companyId = companies?.find(c => c.name.toLowerCase() === formData.companyName?.toLowerCase())?.id || '';
 
-    const newContact: Omit<Contact, 'id'> = {
+    const newContact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'lastContacted'> = {
       name: formData.name,
       email: formData.email,
       phone: formData.phone || '',
@@ -247,19 +247,22 @@ export default function ContactsPage() {
       nextStep: formData.nextStep || '',
       avatarUrl: `https://picsum.photos/seed/${Date.now()}/40/40`,
       teamId: teamId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      lastContacted: new Date().toISOString(),
     };
-
+    
     const contactsCollection = collection(firestore, 'contacts');
-    // Note: addDocumentNonBlocking is optimistic and doesn't return the ID.
-    // For `onSaveAndCreateOpportunity` we might need a different approach if ID is needed immediately.
-    addDocumentNonBlocking(contactsCollection, newContact);
+    
+    addDoc(contactsCollection, {
+      ...newContact,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      lastContacted: serverTimestamp(),
+    }).catch(error => {
+      console.error("Error adding document: ", error);
+      toast({ title: 'Error al Guardar', description: 'No se pudo crear el contacto en la base de datos.', variant: 'destructive' });
+    });
     
     toast({ title: 'Contacto Creado', description: `${newContact.name} ha sido agregado y sincronizado en HiperFlow.` });
     
-    // This is a simplification. Ideally, we'd get the new contact ID from the database.
     return newContact.email; 
   };
 
@@ -291,7 +294,7 @@ export default function ContactsPage() {
               Nuevo Contacto
             </Button>
           </SheetTrigger>
-          <SheetContent className="sm:max-w-2xl w-full">
+          <SheetContent side="right" className="sm:max-w-4xl w-full">
             <SheetHeader className="text-left pr-6">
               <SheetTitle>Crear Nuevo Contacto</SheetTitle>
               <SheetDescription>
@@ -350,7 +353,7 @@ export default function ContactsPage() {
                       </TableCell>
                       <TableCell>{company?.name || 'N/A'}</TableCell>
                       <TableCell>{location || 'N/A'}</TableCell>
-                      <TableCell>{new Date(contact.lastContacted).toLocaleDateString()}</TableCell>
+                      <TableCell>{contact.lastContacted && new Date(contact.lastContacted).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
