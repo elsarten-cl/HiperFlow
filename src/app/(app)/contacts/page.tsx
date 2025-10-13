@@ -29,9 +29,7 @@ const contactSchema = z.object({
   phone: z.string().optional(),
   jobTitle: z.string().optional(),
   companyName: z.string().optional(),
-  linkedinProfile: z.string().url({ message: "Por favor, introduce una URL de LinkedIn válida." }).optional().or(z.literal('')),
-  instagramProfile: z.string().url({ message: "Por favor, introduce una URL de Instagram válida." }).optional().or(z.literal('')),
-  facebookProfile: z.string().url({ message: "Por favor, introduce una URL de Facebook válida." }).optional().or(z.literal('')),
+  socials: z.string().url({ message: "Por favor, introduce una URL válida." }).optional().or(z.literal('')),
   source: z.string().optional(),
   mainInterest: z.string().optional(),
   interestLevel: z.enum(['bajo', 'medio', 'alto']).optional(),
@@ -52,9 +50,7 @@ const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }
       phone: '',
       jobTitle: '',
       companyName: '',
-      linkedinProfile: '',
-      instagramProfile: '',
-      facebookProfile: '',
+      socials: '',
       source: '',
       mainInterest: '',
       internalNotes: '',
@@ -75,13 +71,11 @@ const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }
         name: currentData.name,
         company: currentData.companyName,
         email: currentData.email,
-        linkedinProfile: currentData.linkedinProfile,
+        linkedinProfile: currentData.socials,
       });
       if (result.enriched) {
         form.setValue('jobTitle', result.jobTitle || currentData.jobTitle);
-        form.setValue('linkedinProfile', result.linkedinProfile || currentData.linkedinProfile);
-        form.setValue('instagramProfile', result.instagramProfile || currentData.instagramProfile);
-        form.setValue('facebookProfile', result.facebookProfile || currentData.facebookProfile);
+        form.setValue('socials', result.linkedinProfile || currentData.socials);
         form.setValue('email', result.email || currentData.email);
         form.setValue('city', result.city || currentData.city);
         form.setValue('country', result.country || currentData.country);
@@ -118,14 +112,8 @@ const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }
               <FormItem><FormLabel>Empresa</FormLabel><FormControl><Input {...field} placeholder="Ej: Agencia Creativa Horizonte" className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
             )} />
           </div>
-           <FormField control={form.control} name="linkedinProfile" render={({ field }) => (
-              <FormItem><FormLabel>Perfil de LinkedIn</FormLabel><FormControl><Input {...field} placeholder="Pega aquí la URL de su perfil de LinkedIn." className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="instagramProfile" render={({ field }) => (
-                <FormItem><FormLabel>Perfil de Instagram</FormLabel><FormControl><Input {...field} placeholder="Pega aquí la URL de su perfil de Instagram." className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
-            )} />
-            <FormField control={form.control} name="facebookProfile" render={({ field }) => (
-                <FormItem><FormLabel>Perfil de Facebook</FormLabel><FormControl><Input {...field} placeholder="Pega aquí la URL de su perfil de Facebook." className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+           <FormField control={form.control} name="socials" render={({ field }) => (
+              <FormItem><FormLabel>Redes Sociales</FormLabel><FormControl><Input {...field} placeholder="Pega aquí la URL de su perfil principal (LinkedIn, Instagram, etc.)" className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
             )} />
         </div>
         
@@ -241,9 +229,7 @@ export default function ContactsPage() {
         phone: formData.phone || '',
         jobTitle: formData.jobTitle || '',
         companyId: companyId,
-        linkedinProfile: formData.linkedinProfile || '',
-        instagramProfile: formData.instagramProfile || '',
-        facebookProfile: formData.facebookProfile || '',
+        socials: formData.socials || '',
         source: formData.source || 'desconocido',
         interestLevel: formData.interestLevel,
         mainInterest: formData.mainInterest || '',
