@@ -23,6 +23,7 @@ import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, W
 import { collection } from 'firebase/firestore';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const contactSchema = z.object({
   name: z.string().min(1, { message: 'El nombre es requerido.' }),
@@ -126,6 +127,9 @@ const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }
         <div className="space-y-4">
           <h3 className="text-lg font-medium font-headline">Contexto de Relación</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <FormField control={form.control} name="phone" render={({ field }) => (
+              <FormItem><FormLabel>WhatsApp</FormLabel><FormControl><Input {...field} placeholder="+56 9 1234 5678" className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+            )} />
             <FormField control={form.control} name="source" render={({ field }) => (
               <FormItem><FormLabel>Origen del contacto</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
@@ -288,7 +292,7 @@ export default function ContactsPage() {
             </Button>
           </SheetTrigger>
           <SheetContent className="sm:max-w-2xl w-full">
-            <SheetHeader className="text-left">
+            <SheetHeader className="text-left pr-6">
               <SheetTitle>Crear Nuevo Contacto</SheetTitle>
               <SheetDescription>
                 Completa los datos de tu cliente o lead. Puedes usar la IA para enriquecer automáticamente información como cargo, empresa o redes sociales.
@@ -297,9 +301,11 @@ export default function ContactsPage() {
                 Un contacto es el punto de partida de toda relación comercial. Cuanto más contexto registres, más inteligente será tu flujo de ventas.
               </p>
             </SheetHeader>
-            <div className="py-6">
-               <ContactForm onSave={handleSaveContact} onSaveAndCreateOpportunity={handleSaveAndCreateOpportunity} onCancel={() => setIsSheetOpen(false)} companies={companies}/>
-            </div>
+            <ScrollArea className="h-[calc(100vh-10rem)] pr-6">
+               <div className="py-6">
+                 <ContactForm onSave={handleSaveContact} onSaveAndCreateOpportunity={handleSaveAndCreateOpportunity} onCancel={() => setIsSheetOpen(false)} companies={companies}/>
+               </div>
+            </ScrollArea>
           </SheetContent>
         </Sheet>
       </PageHeader>
