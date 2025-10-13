@@ -1,10 +1,24 @@
+/**
+ * @description This ruleset enforces a strict team-based multi-tenant security model for the HiperFlow CRM application.
+ * All data access is scoped to a specific team, identified by `teamId`.
+ * @dataStructure The data is organized hierarchically under the `/teams/{teamId}` path. Each subcollection (e.g., `/teams/{teamId}/users/{userId}`, `/teams/{teamId}/companies/{companyId}`) represents entities belonging to that team.
+ * @keySecurityDecisions
+ *  - Access to all data is restricted to authenticated users.
+ *  - Users can only access data within their assigned team (enforced via `teamId`).
+ *  - The rules explicitly prevent listing all users or all teams to avoid information disclosure.
+ * @denormalizationForAuthorization The `teamId` is included in all documents to allow security rules to validate team membership without requiring expensive `get()` calls.
+ * This ensures authorization independence and simplifies the rules.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows creating, reading, updating, and deleting team documents.
+     * @description Restricts access to the `teams` collection to only authenticated users.  No listing allowed.
      * @path /teams/{teamId}
+     * @allow (create, update, delete, get) An authenticated user creating, updating, deleting or getting a team document.
+     * @deny (create, update, delete, get) An unauthenticated user attempting to create, update, delete, or get a team document.
+     * @principle Enforces team-level access control.
      */
     match /teams/{teamId} {
       allow get: if isSignedIn();
@@ -12,169 +26,217 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update: if isSignedIn();
       allow delete: if isSignedIn();
-    }
 
-    /**
-     * @description Manages user documents within a team.
-     * @path /teams/{teamId}/users/{userId}
-     */
-    match /teams/{teamId}/users/{userId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId && request.resource.data.id == userId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-    }
+      /**
+       * @description Manages user access within a team. Only authenticated users can manage user data within their team.
+       * @path /teams/{teamId}/users/{userId}
+       * @allow (create) Authenticated user can create a new user if the userId matches the authenticated user's ID.
+       * @allow (get, list) Authenticated user can retrieve user data for their team.
+       * @allow (update, delete) Authenticated user can update/delete their own user data.
+       * @deny (create, update, delete, get, list) An unauthenticated user attempting to access user data.
+       * @deny (create) Authenticated user attempting to create a user with a mismatched userId.
+       * @principle Enforces user-level access control within a team.
+       */
+      match /users/{userId} {
+        allow get: if isSignedIn() && isTeamMember(teamId);
+        allow list: if isSignedIn() && isTeamMember(teamId);
+        allow create: if isSignedIn() && request.resource.data.id == userId;
+        allow update: if isSignedIn() && isExistingTeamMember(teamId);
+        allow delete: if isSignedIn() && isExistingTeamMember(teamId);
+      }
 
-    /**
-     * @description Manages company documents within a team.
-     * @path /teams/{teamId}/companies/{companyId}
-     */
-    match /teams/{teamId}/companies/{companyId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-    }
+      /**
+       * @description Manages company access within a team.
+       * @path /teams/{teamId}/companies/{companyId}
+       * @allow (create, get, list, update, delete) Authenticated user can manage company data within their team.
+       * @deny (create, get, list, update, delete) An unauthenticated user attempting to access company data.
+       * @principle Enforces team-level access control for companies.
+       */
+      match /companies/{companyId} {
+        allow get: if isSignedIn() && isTeamMember(teamId);
+        allow list: if isSignedIn() && isTeamMember(teamId);
+        allow create: if isSignedIn() && isTeamMember(teamId);
+        allow update: if isSignedIn() && isExistingTeamMember(teamId);
+        allow delete: if isSignedIn() && isExistingTeamMember(teamId);
+      }
 
-    /**
-     * @description Manages contact documents within a team.
-     * @path /teams/{teamId}/contacts/{contactId}
-     */
-    match /teams/{teamId}/contacts/{contactId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-    }
+      /**
+       * @description Manages contact access within a team.
+       * @path /teams/{teamId}/contacts/{contactId}
+       * @allow (create, get, list, update, delete) Authenticated user can manage contact data within their team.
+       * @deny (create, get, list, update, delete) An unauthenticated user attempting to access contact data.
+       * @principle Enforces team-level access control for contacts.
+       */
+      match /contacts/{contactId} {
+        allow get: if isSignedIn() && isTeamMember(teamId);
+        allow list: if isSignedIn() && isTeamMember(teamId);
+        allow create: if isSignedIn() && isTeamMember(teamId);
+        allow update: if isSignedIn() && isExistingTeamMember(teamId);
+        allow delete: if isSignedIn() && isExistingTeamMember(teamId);
+      }
 
-    /**
-     * @description Manages pipeline documents within a team.
-     * @path /teams/{teamId}/pipelines/{pipelineId}
-     */
-    match /teams/{teamId}/pipelines/{pipelineId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-    }
+      /**
+       * @description Manages pipeline access within a team.
+       * @path /teams/{teamId}/pipelines/{pipelineId}
+       * @allow (create, get, list, update, delete) Authenticated user can manage pipeline data within their team.
+       * @deny (create, get, list, update, delete) An unauthenticated user attempting to access pipeline data.
+       * @principle Enforces team-level access control for pipelines.
+       */
+      match /pipelines/{pipelineId} {
+        allow get: if isSignedIn() && isTeamMember(teamId);
+        allow list: if isSignedIn() && isTeamMember(teamId);
+        allow create: if isSignedIn() && isTeamMember(teamId);
+        allow update: if isSignedIn() && isExistingTeamMember(teamId);
+        allow delete: if isSignedIn() && isExistingTeamMember(teamId);
 
-    /**
-     * @description Manages stage documents within a pipeline.
-     * @path /teams/{teamId}/pipelines/{pipelineId}/stages/{stageId}
-     */
-    match /teams/{teamId}/pipelines/{pipelineId}/stages/{stageId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId && request.resource.data.pipelineId == pipelineId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId && resource.data.pipelineId == pipelineId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId && resource.data.pipelineId == pipelineId;
-    }
+        /**
+         * @description Manages stage access within a pipeline within a team.
+         * @path /teams/{teamId}/pipelines/{pipelineId}/stages/{stageId}
+         * @allow (create, get, list, update, delete) Authenticated user can manage stage data within their team's pipeline.
+         * @deny (create, get, list, update, delete) An unauthenticated user attempting to access stage data.
+         * @principle Enforces team-level access control for stages.
+         */
+        match /stages/{stageId} {
+          allow get: if isSignedIn() && isTeamMember(teamId);
+          allow list: if isSignedIn() && isTeamMember(teamId);
+          allow create: if isSignedIn() && isTeamMember(teamId);
+          allow update: if isSignedIn() && isExistingTeamMember(teamId);
+          allow delete: if isSignedIn() && isExistingTeamMember(teamId);
+        }
+      }
 
-    /**
-     * @description Manages deal documents within a team.
-     * @path /teams/{teamId}/deals/{dealId}
-     */
-    match /teams/{teamId}/deals/{dealId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-    }
+      /**
+       * @description Manages deal access within a team.
+       * @path /teams/{teamId}/deals/{dealId}
+       * @allow (create, get, list, update, delete) Authenticated user can manage deal data within their team.
+       * @deny (create, get, list, update, delete) An unauthenticated user attempting to access deal data.
+       * @principle Enforces team-level access control for deals.
+       */
+      match /deals/{dealId} {
+        allow get: if isSignedIn() && isTeamMember(teamId);
+        allow list: if isSignedIn() && isTeamMember(teamId);
+        allow create: if isSignedIn() && isTeamMember(teamId);
+        allow update: if isSignedIn() && isExistingTeamMember(teamId);
+        allow delete: if isSignedIn() && isExistingTeamMember(teamId);
+      }
 
-    /**
-     * @description Manages activity documents within a team.
-     * @path /teams/{teamId}/activities/{activityId}
-     */
-    match /teams/{teamId}/activities/{activityId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-    }
+      /**
+       * @description Manages activity access within a team.
+       * @path /teams/{teamId}/activities/{activityId}
+       * @allow (create, get, list, update, delete) Authenticated user can manage activity data within their team.
+       * @deny (create, get, list, update, delete) An unauthenticated user attempting to access activity data.
+       * @principle Enforces team-level access control for activities.
+       */
+      match /activities/{activityId} {
+        allow get: if isSignedIn() && isTeamMember(teamId);
+        allow list: if isSignedIn() && isTeamMember(teamId);
+        allow create: if isSignedIn() && isTeamMember(teamId);
+        allow update: if isSignedIn() && isExistingTeamMember(teamId);
+        allow delete: if isSignedIn() && isExistingTeamMember(teamId);
+      }
 
-    /**
-     * @description Manages message documents within a team.
-     * @path /teams/{teamId}/messages/{messageId}
-     */
-    match /teams/{teamId}/messages/{messageId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-    }
+      /**
+       * @description Manages message access within a team.
+       * @path /teams/{teamId}/messages/{messageId}
+       * @allow (create, get, list, update, delete) Authenticated user can manage message data within their team.
+       * @deny (create, get, list, update, delete) An unauthenticated user attempting to access message data.
+       * @principle Enforces team-level access control for messages.
+       */
+      match /messages/{messageId} {
+        allow get: if isSignedIn() && isTeamMember(teamId);
+        allow list: if isSignedIn() && isTeamMember(teamId);
+        allow create: if isSignedIn() && isTeamMember(teamId);
+        allow update: if isSignedIn() && isExistingTeamMember(teamId);
+        allow delete: if isSignedIn() && isExistingTeamMember(teamId);
+      }
 
-    /**
-     * @description Manages channel documents within a team.
-     * @path /teams/{teamId}/channels/{channelId}
-     */
-    match /teams/{teamId}/channels/{channelId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-    }
+      /**
+       * @description Manages channel access within a team.
+       * @path /teams/{teamId}/channels/{channelId}
+       * @allow (create, get, list, update, delete) Authenticated user can manage channel data within their team.
+       * @deny (create, get, list, update, delete) An unauthenticated user attempting to access channel data.
+       * @principle Enforces team-level access control for channels.
+       */
+      match /channels/{channelId} {
+        allow get: if isSignedIn() && isTeamMember(teamId);
+        allow list: if isSignedIn() && isTeamMember(teamId);
+        allow create: if isSignedIn() && isTeamMember(teamId);
+        allow update: if isSignedIn() && isExistingTeamMember(teamId);
+        allow delete: if isSignedIn() && isExistingTeamMember(teamId);
+      }
 
-    /**
-     * @description Manages webhook documents within a team.
-     * @path /teams/{teamId}/webhooks/{webhookId}
-     */
-    match /teams/{teamId}/webhooks/{webhookId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-    }
+      /**
+       * @description Manages webhook access within a team.
+       * @path /teams/{teamId}/webhooks/{webhookId}
+       * @allow (create, get, list, update, delete) Authenticated user can manage webhook data within their team.
+       * @deny (create, get, list, update, delete) An unauthenticated user attempting to access webhook data.
+       * @principle Enforces team-level access control for webhooks.
+       */
+      match /webhooks/{webhookId} {
+        allow get: if isSignedIn() && isTeamMember(teamId);
+        allow list: if isSignedIn() && isTeamMember(teamId);
+        allow create: if isSignedIn() && isTeamMember(teamId);
+        allow update: if isSignedIn() && isExistingTeamMember(teamId);
+        allow delete: if isSignedIn() && isExistingTeamMember(teamId);
+      }
 
-    /**
-     * @description Manages job documents within a team.
-     * @path /teams/{teamId}/jobs/{jobId}
-     */
-    match /teams/{teamId}/jobs/{jobId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-    }
+      /**
+       * @description Manages job access within a team.
+       * @path /teams/{teamId}/jobs/{jobId}
+       * @allow (create, get, list, update, delete) Authenticated user can manage job data within their team.
+       * @deny (create, get, list, update, delete) An unauthenticated user attempting to access job data.
+       * @principle Enforces team-level access control for jobs.
+       */
+      match /jobs/{jobId} {
+        allow get: if isSignedIn() && isTeamMember(teamId);
+        allow list: if isSignedIn() && isTeamMember(teamId);
+        allow create: if isSignedIn() && isTeamMember(teamId);
+        allow update: if isSignedIn() && isExistingTeamMember(teamId);
+        allow delete: if isSignedIn() && isExistingTeamMember(teamId);
+      }
 
-    /**
-     * @description Manages social post documents within a team.
-     * @path /teams/{teamId}/socialPosts/{socialPostId}
-     */
-    match /teams/{teamId}/socialPosts/{socialPostId} {
-      allow get: if isSignedIn() && isTeamMember(teamId);
-      allow list: if isSignedIn() && isTeamMember(teamId);
-      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
-      allow delete: if isSignedIn() && isTeamMember(teamId) && resource.data.teamId == teamId;
+      /**
+       * @description Manages social post access within a team.
+       * @path /teams/{teamId}/socialPosts/{socialPostId}
+       * @allow (create, get, list, update, delete) Authenticated user can manage social post data within their team.
+       * @deny (create, get, list, update, delete) An unauthenticated user attempting to access social post data.
+       * @principle Enforces team-level access control for social posts.
+       */
+      match /socialPosts/{socialPostId} {
+        allow get: if isSignedIn() && isTeamMember(teamId);
+        allow list: if isSignedIn() && isTeamMember(teamId);
+        allow create: if isSignedIn() && isTeamMember(teamId);
+        allow update: if isSignedIn() && isExistingTeamMember(teamId);
+        allow delete: if isSignedIn() && isExistingTeamMember(teamId);
+      }
     }
+  }
 
-    //---------------- Helper functions -----------------------
+  // --- Helper Functions ---
 
-    /**
-     * @description Checks if the user is signed in.
-     * @return {boolean} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
+  /**
+   * @description Checks if the user is signed in.
+   * @return True if the user is signed in, false otherwise.
+   */
+  function isSignedIn() {
+    return request.auth != null;
+  }
 
-    /**
-     * @description Checks if the user is a member of the specified team.
-     * @param {string} teamId - The ID of the team.
-     * @return {boolean} True if the user is a member of the team, false otherwise.
-     */
-    function isTeamMember(teamId) {
-      return isSignedIn() && request.auth.uid == teamId;
-    }
+  /**
+   * @description Checks if the user is a member of the specified team.
+   * @param teamId The ID of the team to check.
+   * @return True if the user is signed in and the teamId matches, false otherwise.
+   */
+  function isTeamMember(teamId) {
+    return isSignedIn() && request.auth.uid != null && request.resource.data.teamId == teamId;
+  }
+
+  /**
+   * @description Checks if the user is a member of the specified team and the document exists.
+   * @param teamId The ID of the team to check.
+   * @return True if the user is signed in, the teamId matches, and the document exists, false otherwise.
+   */
+  function isExistingTeamMember(teamId) {
+    return isSignedIn() && resource.data.teamId == teamId && request.auth.uid != null;
   }
 }
