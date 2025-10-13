@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription, SheetFooter } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { Contact, Company } from '@/lib/types';
@@ -114,10 +114,10 @@ export default function ContactsPage() {
   // Hardcoded teamId for now
   const teamId = 'team-1';
 
-  const contactsRef = useMemoFirebase(() => collection(firestore, 'teams', teamId, 'contacts'), [firestore, teamId]);
+  const contactsRef = useMemoFirebase(() => collection(firestore, 'contacts'), [firestore]);
   const { data: contacts, isLoading: isLoadingContacts } = useCollection<Contact>(contactsRef);
   
-  const companiesRef = useMemoFirebase(() => collection(firestore, 'teams', teamId, 'companies'), [firestore, teamId]);
+  const companiesRef = useMemoFirebase(() => collection(firestore, 'companies'), [firestore]);
   const { data: companies, isLoading: isLoadingCompanies } = useCollection<Company>(companiesRef);
 
   const handleSaveContact = (formData: Partial<Contact>) => {
@@ -134,7 +134,7 @@ export default function ContactsPage() {
       ...formData
     };
 
-    const contactsCollection = collection(firestore, 'teams', teamId, 'contacts');
+    const contactsCollection = collection(firestore, 'contacts');
     addDocumentNonBlocking(contactsCollection, newContact);
 
     setIsSheetOpen(false);

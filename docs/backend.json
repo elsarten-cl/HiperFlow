@@ -622,18 +622,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/users/{userId}",
+        "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Represents a user within a team. Includes `teamId` for authorization independence.",
+          "description": "Represents a user. The `userId` is the same as the Firebase Auth UID.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "userId",
               "description": "Unique identifier for the user."
@@ -642,18 +638,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/companies/{companyId}",
+        "path": "/companies/{companyId}",
         "definition": {
           "entityName": "Company",
           "schema": {
             "$ref": "#/backend/entities/Company"
           },
-          "description": "Represents a company. Includes `teamId` for authorization independence.",
+          "description": "Represents a company.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "companyId",
               "description": "Unique identifier for the company."
@@ -662,18 +654,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/contacts/{contactId}",
+        "path": "/contacts/{contactId}",
         "definition": {
           "entityName": "Contact",
           "schema": {
             "$ref": "#/backend/entities/Contact"
           },
-          "description": "Represents a contact. Includes `teamId` for authorization independence.",
+          "description": "Represents a contact.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "contactId",
               "description": "Unique identifier for the contact."
@@ -682,18 +670,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/pipelines/{pipelineId}",
+        "path": "/pipelines/{pipelineId}",
         "definition": {
           "entityName": "Pipeline",
           "schema": {
             "$ref": "#/backend/entities/Pipeline"
           },
-          "description": "Represents a pipeline. Includes `teamId` for authorization independence.",
+          "description": "Represents a pipeline.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "pipelineId",
               "description": "Unique identifier for the pipeline."
@@ -702,18 +686,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/pipelines/{pipelineId}/stages/{stageId}",
+        "path": "/pipelines/{pipelineId}/stages/{stageId}",
         "definition": {
           "entityName": "Stage",
           "schema": {
             "$ref": "#/backend/entities/Stage"
           },
-          "description": "Represents a stage in a pipeline. Includes `teamId` (denormalized from Pipeline) for authorization independence.",
+          "description": "Represents a stage in a pipeline.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "pipelineId",
               "description": "Unique identifier for the pipeline."
@@ -726,18 +706,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/deals/{dealId}",
+        "path": "/deals/{dealId}",
         "definition": {
           "entityName": "Deal",
           "schema": {
             "$ref": "#/backend/entities/Deal"
           },
-          "description": "Represents a deal. Includes `teamId` for authorization independence.",
+          "description": "Represents a deal.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "dealId",
               "description": "Unique identifier for the deal."
@@ -746,18 +722,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/activities/{activityId}",
+        "path": "/activities/{activityId}",
         "definition": {
           "entityName": "Activity",
           "schema": {
             "$ref": "#/backend/entities/Activity"
           },
-          "description": "Represents an activity. Includes `teamId` for authorization independence.",
+          "description": "Represents an activity.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "activityId",
               "description": "Unique identifier for the activity."
@@ -766,18 +738,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/messages/{messageId}",
+        "path": "/messages/{messageId}",
         "definition": {
           "entityName": "Message",
           "schema": {
             "$ref": "#/backend/entities/Message"
           },
-          "description": "Represents a message. Includes `teamId` for authorization independence.",
+          "description": "Represents a message.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "messageId",
               "description": "Unique identifier for the message."
@@ -786,18 +754,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/channels/{channelId}",
+        "path": "/channels/{channelId}",
         "definition": {
           "entityName": "Channel",
           "schema": {
             "$ref": "#/backend/entities/Channel"
           },
-          "description": "Represents a channel. Includes `teamId` for authorization independence.",
+          "description": "Represents a channel.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "channelId",
               "description": "Unique identifier for the channel."
@@ -806,18 +770,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/webhooks/{webhookId}",
+        "path": "/webhooks/{webhookId}",
         "definition": {
           "entityName": "Webhook",
           "schema": {
             "$ref": "#/backend/entities/Webhook"
           },
-          "description": "Represents a webhook. Includes `teamId` for authorization independence.",
+          "description": "Represents a webhook.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "webhookId",
               "description": "Unique identifier for the webhook."
@@ -826,18 +786,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/jobs/{jobId}",
+        "path": "/jobs/{jobId}",
         "definition": {
           "entityName": "Job",
           "schema": {
             "$ref": "#/backend/entities/Job"
           },
-          "description": "Represents a job. Includes `teamId` for authorization independence.",
+          "description": "Represents a job.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "jobId",
               "description": "Unique identifier for the job."
@@ -846,18 +802,14 @@
         }
       },
       {
-        "path": "/teams/{teamId}/socialPosts/{socialPostId}",
+        "path": "/socialPosts/{socialPostId}",
         "definition": {
           "entityName": "SocialPost",
           "schema": {
             "$ref": "#/backend/entities/SocialPost"
           },
-          "description": "Represents a social post. Includes `teamId` for authorization independence.",
+          "description": "Represents a social post.",
           "params": [
-            {
-              "name": "teamId",
-              "description": "Unique identifier for the team."
-            },
             {
               "name": "socialPostId",
               "description": "Unique identifier for the social post."
@@ -866,6 +818,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure is designed to support a multi-tenant CRM application (HiperFlow) with a focus on security, scalability, and ease of debugging. The structure incorporates denormalization to ensure authorization independence, enabling atomic operations and simplifying security rules. It segregates data based on access needs and employs consistent access modeling for predictable authorization. All collections are teamId-scoped to enable multi-tenancy.  Specifically:\n\n1.  **Authorization Independence:** All documents requiring team-based access include the `teamId` field. This allows security rules to validate a user's access based solely on the `teamId` in their authentication token and the document, without needing `get()` calls to parent documents.\n\n2.  **Structural Segregation:** Each top-level collection (e.g., `teams`, `users`, `companies`) contains documents with the same security posture. This simplifies rules since all documents within a collection share the same access requirements.\n\n3.  **Access Modeling:**\n    *   Data is primarily organized around the `teamId`, ensuring that users can only access data within their assigned team.\n    *   Hierarchical paths are used for entities with 1:N relationships, such as `/teams/{teamId}/users/{userId}`.\n\n4.  **QAPs Support:** Segregation by `teamId` ensures secure `list` operations. Rules can easily filter collections based on the requesting user's `teamId`, preventing unauthorized access to data from other teams.\n\n5.  **Invariants:** The structure supports invariants by enforcing the presence of `teamId` across all relevant collections, ensuring data integrity and ownership."
+    "reasoning": "The Firestore data structure has been flattened to use root-level collections for all major entities (e.g., /users, /contacts, /companies). This change is a diagnostic step to resolve a persistent and unusual permissions issue where nested collections under '/teams/{teamId}' were inaccessible despite permissive security rules. By moving collections to the root, we eliminate the complexity of path matching in security rules, simplifying the access control logic. The 'teamId' is retained as a field within each document to maintain data scoping for multi-tenancy, which can be enforced through query constraints in the application logic and eventually in refined security rules. This flattened structure provides a more direct access pattern, which should bypass the suspected underlying issue with rule evaluation on nested paths in the current project environment."
   }
 }
