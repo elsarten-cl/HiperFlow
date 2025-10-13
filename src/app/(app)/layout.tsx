@@ -65,8 +65,8 @@ const navItems = [
   { href: '/contacts', label: 'Contactos', icon: Users },
   { href: '/companies', label: 'Empresas', icon: Briefcase },
   { href: '/activities', label: 'Actividades', icon: History },
-  { href: '/inbox', label: 'Bandeja de Entrada', icon: Mail },
-  { href: '/social', label: 'Redes Sociales', icon: PenSquare },
+  { href: '/inbox', label: 'Inbox', icon: Mail },
+  { href: '/social', label: 'RRSS', icon: PenSquare },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
