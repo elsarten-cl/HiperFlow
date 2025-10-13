@@ -26,7 +26,7 @@ export type EnrichContactDataInput = z.infer<typeof EnrichContactDataInputSchema
 const EnrichContactDataOutputSchema = z.object({
   email: z.string().email().optional().describe('The enriched email address of the contact.'),
   jobTitle: z.string().optional().describe('The enriched job title of the contact.'),
-  linkedinProfile: z.string().optional().describe('The enriched LinkedIn profile URL of the contact.'),
+  linkedinProfile: z.string().url().optional().describe('The enriched LinkedIn profile URL of the contact.'),
   city: z.string().optional().describe('The city of the contact.'),
   country: z.string().optional().describe('The country of the contact.'),
   enriched: z.boolean().describe('Indicates whether the contact data was successfully enriched.'),
@@ -51,10 +51,24 @@ const enrichContactDataFlow = ai.defineFlow(
     outputSchema: EnrichContactDataOutputSchema,
   },
   async input => {
-    const {output} = await enrichContactDataPrompt(input);
-    return {
-      ...output!,
-      enriched: true, // Assume enrichment is always successful for now
-    };
+    try {
+        const {output} = await enrichContactDataPrompt(input);
+        if (!output) {
+            return { enriched: false };
+        }
+        
+        // Basic check to see if we got *any* new data
+        const wasEnriched = !!(output.jobTitle || output.linkedinProfile || output.city || output.country || (output.email && output.email !== input.email));
+
+        return {
+        ...output,
+        enriched: wasEnriched,
+        };
+    } catch (error) {
+        console.error("Enrichment flow failed:", error);
+        return { enriched: false };
+    }
   }
 );
+
+    

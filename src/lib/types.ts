@@ -4,7 +4,7 @@ export type Contact = {
   id: string;
   name: string;
   email: string;
-  jobTitle: string;
+  jobTitle?: string;
   companyId: string;
   avatarUrl: string;
   phone?: string;
@@ -15,6 +15,12 @@ export type Contact = {
   teamId: string;
   createdAt: string;
   updatedAt: string;
+  source?: string;
+  mainInterest?: string;
+  interestLevel?: 'bajo' | 'medio' | 'alto';
+  internalNotes?: string;
+  timezone?: string;
+  nextStep?: string;
 };
 
 export type Company = {
@@ -74,3 +80,5 @@ export type Conversation = {
   contactId: string;
   messages: Message[];
 };
+
+    

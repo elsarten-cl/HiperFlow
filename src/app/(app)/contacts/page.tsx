@@ -13,38 +13,53 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTr
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import type { Contact, Company } from '@/lib/types';
-import { MoreHorizontal, Plus, UserCircle, Sparkles } from 'lucide-react';
+import { MoreHorizontal, Plus, UserCircle, Sparkles, BrainCircuit, Rocket, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { enrichContactData } from '@/ai/flows/enrich-contact-data';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, WithId } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { cn } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 const contactSchema = z.object({
   name: z.string().min(1, { message: 'El nombre es requerido.' }),
   email: z.string().email({ message: 'El correo electrónico no es válido.' }),
   phone: z.string().optional(),
   jobTitle: z.string().optional(),
-  linkedinProfile: z.string().optional(),
+  companyName: z.string().optional(),
+  linkedinProfile: z.string().url({ message: "Por favor, introduce una URL de LinkedIn válida." }).optional().or(z.literal('')),
+  source: z.string().optional(),
+  mainInterest: z.string().optional(),
+  interestLevel: z.enum(['bajo', 'medio', 'alto']).optional(),
+  internalNotes: z.string().optional(),
   city: z.string().optional(),
   country: z.string().optional(),
-  companyId: z.string().optional(),
+  timezone: z.string().optional(),
+  nextStep: z.string().optional(),
 });
 
 type ContactFormData = z.infer<typeof contactSchema>;
 
-const ContactForm = ({ contact, onSave, onCancel, companies }: { contact?: Partial<ContactFormData> | null; onSave: (contact: ContactFormData) => void; onCancel: () => void; companies: WithId<Company>[] | null; }) => {
+const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }: { onSave: (contact: ContactFormData) => void; onSaveAndCreateOpportunity: (contact: ContactFormData) => void; onCancel: () => void; companies: WithId<Company>[] | null; }) => {
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
     defaultValues: {
-      name: contact?.name || '',
-      email: contact?.email || '',
-      phone: contact?.phone || '',
-      jobTitle: contact?.jobTitle || '',
-      linkedinProfile: contact?.linkedinProfile || '',
-      city: contact?.city || '',
-      country: contact?.country || '',
-      companyId: contact?.companyId || '',
+      name: '',
+      email: '',
+      phone: '',
+      jobTitle: '',
+      companyName: '',
+      linkedinProfile: '',
+      source: '',
+      mainInterest: '',
+      internalNotes: '',
+      city: '',
+      country: '',
+      timezone: '',
+      nextStep: '',
     },
   });
   
@@ -57,8 +72,9 @@ const ContactForm = ({ contact, onSave, onCancel, companies }: { contact?: Parti
     try {
       const result = await enrichContactData({
         name: currentData.name,
-        company: companies?.find(c => c.id === currentData.companyId)?.name,
+        company: currentData.companyName,
         email: currentData.email,
+        linkedinProfile: currentData.linkedinProfile,
       });
       if (result.enriched) {
         form.setValue('jobTitle', result.jobTitle || currentData.jobTitle);
@@ -80,106 +96,108 @@ const ContactForm = ({ contact, onSave, onCancel, companies }: { contact?: Parti
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nombre</FormLabel>
-              <FormControl>
-                <Input {...field} required />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input type="email" {...field} required />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Teléfono / WhatsApp</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="jobTitle"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Cargo</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-         <FormField
-          control={form.control}
-          name="linkedinProfile"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Perfil de LinkedIn</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="city"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ciudad</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="country"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>País</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+      <form onSubmit={form.handleSubmit(onSave)} className="space-y-6">
+        
+        {/* Section 1: Identidad */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium font-headline">Identidad del Contacto</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField control={form.control} name="name" render={({ field }) => (
+              <FormItem><FormLabel>Nombre</FormLabel><FormControl><Input {...field} placeholder="Ej: Carla Hernández" required className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="email" render={({ field }) => (
+              <FormItem><FormLabel>Email</FormLabel><FormControl><Input type="email" {...field} placeholder="Ej: carla@empresa.com" required className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="jobTitle" render={({ field }) => (
+              <FormItem><FormLabel>Cargo</FormLabel><FormControl><Input {...field} placeholder="Ej: Directora de Marketing" className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="companyName" render={({ field }) => (
+              <FormItem><FormLabel>Empresa</FormLabel><FormControl><Input {...field} placeholder="Ej: Agencia Creativa Horizonte" className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+            )} />
+          </div>
+           <FormField control={form.control} name="linkedinProfile" render={({ field }) => (
+              <FormItem><FormLabel>Perfil de LinkedIn</FormLabel><FormControl><Input {...field} placeholder="Pega aquí la URL completa de su perfil profesional." className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+            )} />
         </div>
-        <SheetFooter className="pt-4">
-          <Button variant="outline" type="button" onClick={onCancel}>Cancelar</Button>
-          <Button type="button" variant="outline" onClick={handleEnrich} disabled={isEnriching || !form.getValues().name}>
-            <Sparkles className="mr-2 h-4 w-4" /> {isEnriching ? 'Enriqueciendo...' : 'Enriquecer con IA'}
-          </Button>
-          <Button type="submit">Guardar</Button>
+        
+        <Separator />
+
+        {/* Section 2: Contexto */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium font-headline">Contexto de Relación</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField control={form.control} name="source" render={({ field }) => (
+              <FormItem><FormLabel>Origen del contacto</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl><SelectTrigger className="bg-background/80 focus:border-primary"><SelectValue placeholder="Selecciona un origen" /></SelectTrigger></FormControl>
+                  <SelectContent>
+                    <SelectItem value="formulario-web">Formulario Web</SelectItem>
+                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                    <SelectItem value="llamada">Llamada</SelectItem>
+                    <SelectItem value="evento">Evento</SelectItem>
+                    <SelectItem value="referencia">Referencia</SelectItem>
+                    <SelectItem value="otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              <FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="interestLevel" render={({ field }) => (
+              <FormItem><FormLabel>Nivel de interés</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl><SelectTrigger className="bg-background/80 focus:border-primary"><SelectValue placeholder="Selecciona un nivel" /></SelectTrigger></FormControl>
+                <SelectContent>
+                  <SelectItem value="bajo">Bajo</SelectItem>
+                  <SelectItem value="medio">Medio</SelectItem>
+                  <SelectItem value="alto">Alto</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage /></FormItem>
+            )} />
+          </div>
+          <FormField control={form.control} name="mainInterest" render={({ field }) => (
+            <FormItem><FormLabel>Interés principal</FormLabel><FormControl><Input {...field} placeholder="Ej: diseño web, campañas publicitarias..." className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+          )} />
+          <FormField control={form.control} name="internalNotes" render={({ field }) => (
+            <FormItem><FormLabel>Notas internas</FormLabel><FormControl><Textarea {...field} placeholder="Añade comentarios, contexto o información adicional..." className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+          )} />
+        </div>
+
+        <Separator />
+
+        {/* Section 3: Ubicación y Seguimiento */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium font-headline">Ubicación y Seguimiento</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormField control={form.control} name="city" render={({ field }) => (
+              <FormItem><FormLabel>Ciudad</FormLabel><FormControl><Input {...field} className="bg-background/80 focus:border-primary"/></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="country" render={({ field }) => (
+              <FormItem><FormLabel>País</FormLabel><FormControl><Input {...field} className="bg-background/80 focus:border-primary"/></FormControl><FormMessage /></FormItem>
+            )} />
+             <FormField control={form.control} name="timezone" render={({ field }) => (
+              <FormItem><FormLabel>Zona Horaria</FormLabel><FormControl><Input {...field} placeholder="Ej: GMT-3" className="bg-background/80 focus:border-primary"/></FormControl><FormMessage /></FormItem>
+            )} />
+          </div>
+          <FormField control={form.control} name="nextStep" render={({ field }) => (
+              <FormItem><FormLabel>Próximo paso sugerido</FormLabel><FormControl><Input {...field} placeholder="Ej: Enviar correo de presentación" className="bg-background/80 focus:border-primary"/></FormControl><FormMessage /></FormItem>
+            )} />
+        </div>
+
+        <SheetFooter className="pt-8 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+             <Button variant="outline" type="button" onClick={handleEnrich} disabled={isEnriching || !form.getValues().name}>
+              <BrainCircuit className="mr-2 h-4 w-4" /> {isEnriching ? 'Analizando...' : 'Enriquecer con IA'}
+            </Button>
+          </div>
+          <div className="flex flex-col-reverse sm:flex-row gap-2">
+            <Button variant="ghost" type="button" onClick={onCancel}>Cancelar</Button>
+            <Button type="button" onClick={() => onSaveAndCreateOpportunity(form.getValues())} variant="secondary">
+                <Rocket className="mr-2 h-4 w-4" /> Guardar y Crear Oportunidad
+            </Button>
+            <Button type="submit">
+              <Save className="mr-2 h-4 w-4"/> Guardar Contacto
+            </Button>
+          </div>
         </SheetFooter>
       </form>
     </Form>
@@ -193,32 +211,70 @@ export default function ContactsPage() {
   // Hardcoded teamId for now
   const teamId = 'team-1';
 
-  const contactsRef = useMemoFirebase(() => collection(firestore, 'contacts'), [firestore]);
+  const contactsRef = useMemoFirebase(() => firestore ? collection(firestore, 'contacts') : null, [firestore]);
   const { data: contacts, isLoading: isLoadingContacts } = useCollection<Contact>(contactsRef);
   
-  const companiesRef = useMemoFirebase(() => collection(firestore, 'companies'), [firestore]);
+  const companiesRef = useMemoFirebase(() => firestore ? collection(firestore, 'companies') : null, [firestore]);
   const { data: companies, isLoading: isLoadingCompanies } = useCollection<Company>(companiesRef);
 
-  const handleSaveContact = (formData: ContactFormData) => {
-    const newContact: Omit<WithId<Contact>, 'id' | 'lastContacted'> = {
+  const saveContact = (formData: ContactFormData): string => {
+    if (!firestore) {
+      toast({ title: 'Error', description: 'La base de datos no está disponible.', variant: 'destructive' });
+      return '';
+    }
+
+    // This is a simplified version. In a real app, you'd check if company exists or create it.
+    const companyId = companies?.find(c => c.name.toLowerCase() === formData.companyName?.toLowerCase())?.id || '';
+
+    const newContact: Omit<Contact, 'id'> = {
       name: formData.name,
       email: formData.email,
       phone: formData.phone || '',
-      jobTitle: formData.jobTitle || 'N/A',
-      companyId: formData.companyId || '',
+      jobTitle: formData.jobTitle || '',
+      companyId: companyId,
+      linkedinProfile: formData.linkedinProfile || '',
+      source: formData.source || 'desconocido',
+      interestLevel: formData.interestLevel,
+      mainInterest: formData.mainInterest || '',
+      internalNotes: formData.internalNotes || '',
+      city: formData.city || '',
+      country: formData.country || '',
+      timezone: formData.timezone || '',
+      nextStep: formData.nextStep || '',
       avatarUrl: `https://picsum.photos/seed/${Date.now()}/40/40`,
       teamId: teamId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      ...formData,
-      lastContacted: new Date().toISOString()
+      lastContacted: new Date().toISOString(),
     };
 
     const contactsCollection = collection(firestore, 'contacts');
+    // Note: addDocumentNonBlocking is optimistic and doesn't return the ID.
+    // For `onSaveAndCreateOpportunity` we might need a different approach if ID is needed immediately.
     addDocumentNonBlocking(contactsCollection, newContact);
+    
+    toast({ title: 'Contacto Creado', description: `${newContact.name} ha sido agregado y sincronizado en HiperFlow.` });
+    
+    // This is a simplification. Ideally, we'd get the new contact ID from the database.
+    return newContact.email; 
+  };
 
+
+  const handleSaveContact = (formData: ContactFormData) => {
+    saveContact(formData);
     setIsSheetOpen(false);
-    toast({ title: 'Contacto Creado', description: `${newContact.name} ha sido agregado.` });
+  };
+
+  const handleSaveAndCreateOpportunity = (formData: ContactFormData) => {
+    saveContact(formData);
+    setIsSheetOpen(false);
+    // Here you would typically open the "New Opportunity" sheet/modal,
+    // potentially pre-filling it with the new contact's data.
+    // For now, we'll just show a toast.
+    toast({
+      title: "Próximo Paso: Crear Oportunidad",
+      description: "Funcionalidad para abrir el formulario de oportunidad no implementada aún.",
+    });
   };
 
   return (
@@ -231,15 +287,18 @@ export default function ContactsPage() {
               Nuevo Contacto
             </Button>
           </SheetTrigger>
-          <SheetContent className="sm:max-w-lg">
-            <SheetHeader>
+          <SheetContent className="sm:max-w-2xl w-full">
+            <SheetHeader className="text-left">
               <SheetTitle>Crear Nuevo Contacto</SheetTitle>
               <SheetDescription>
-                Rellena los detalles a continuación. Puedes usar la IA para enriquecer los datos.
+                Completa los datos de tu cliente o lead. Puedes usar la IA para enriquecer automáticamente información como cargo, empresa o redes sociales.
               </SheetDescription>
+              <p className="text-xs text-muted-foreground pt-2 italic">
+                Un contacto es el punto de partida de toda relación comercial. Cuanto más contexto registres, más inteligente será tu flujo de ventas.
+              </p>
             </SheetHeader>
-            <div className="py-4">
-               <ContactForm onSave={handleSaveContact} onCancel={() => setIsSheetOpen(false)} companies={companies}/>
+            <div className="py-6">
+               <ContactForm onSave={handleSaveContact} onSaveAndCreateOpportunity={handleSaveAndCreateOpportunity} onCancel={() => setIsSheetOpen(false)} companies={companies}/>
             </div>
           </SheetContent>
         </Sheet>
@@ -309,3 +368,5 @@ export default function ContactsPage() {
     </>
   );
 }
+
+    
