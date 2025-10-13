@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,7 +7,6 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
@@ -19,7 +18,7 @@ import { MoreHorizontal, Plus, UserCircle, BrainCircuit, Rocket, Save } from 'lu
 import { useToast } from '@/hooks/use-toast';
 import { enrichContactData } from '@/ai/flows/enrich-contact-data';
 import { useCollection, useFirestore, useMemoFirebase, WithId, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -41,23 +40,27 @@ const contactSchema = z.object({
 
 type ContactFormData = z.infer<typeof contactSchema>;
 
-const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }: { onSave: (contact: ContactFormData) => void; onSaveAndCreateOpportunity: (contact: ContactFormData) => void; onCancel: () => void; companies: WithId<Company>[] | null; }) => {
+const ContactForm = ({ contact, onSave, onSaveAndCreateOpportunity, onCancel, companies }: { contact?: WithId<Contact>; onSave: (contact: ContactFormData) => void; onSaveAndCreateOpportunity: (contact: ContactFormData) => void; onCancel: () => void; companies: WithId<Company>[] | null; }) => {
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-      jobTitle: '',
-      companyName: '',
-      socials: '',
-      source: '',
-      mainInterest: '',
-      internalNotes: '',
-      city: '',
-      country: '',
-      nextStep: '',
-    },
+    defaultValues: useMemo(() => {
+        const company = companies?.find(c => c.id === contact?.companyId);
+        return {
+            name: contact?.name || '',
+            email: contact?.email || '',
+            phone: contact?.phone || '',
+            jobTitle: contact?.jobTitle || '',
+            companyName: company?.name || '',
+            socials: Array.isArray(contact?.socials) ? contact.socials.join('\n') : contact?.socials || '',
+            source: contact?.source || '',
+            mainInterest: contact?.mainInterest || '',
+            interestLevel: contact?.interestLevel,
+            internalNotes: contact?.internalNotes || '',
+            city: contact?.city || '',
+            country: contact?.country || '',
+            nextStep: contact?.nextStep || '',
+        }
+    }, [contact, companies]),
   });
   
   const [isEnriching, setIsEnriching] = useState(false);
@@ -203,6 +206,7 @@ const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }
 
 export default function ContactsPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<WithId<Contact> | undefined>(undefined);
   const { toast } = useToast();
   const firestore = useFirestore();
   // Hardcoded teamId for now
@@ -223,7 +227,7 @@ export default function ContactsPage() {
     const company = companies?.find(c => c.name.toLowerCase() === formData.companyName?.toLowerCase());
     const companyId = company ? company.id : '';
       
-    const newContactData = {
+    const contactData = {
         name: formData.name,
         email: formData.email,
         phone: formData.phone || '',
@@ -239,41 +243,68 @@ export default function ContactsPage() {
         nextStep: formData.nextStep || '',
         avatarUrl: `https://picsum.photos/seed/${Date.now()}/40/40`,
         teamId: teamId,
-        createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        lastContacted: serverTimestamp(),
     };
-  
-    const contactsCollection = collection(firestore, 'contacts');
-    
-    addDoc(contactsCollection, newContactData)
-      .then(() => {
-        toast({ title: 'Contacto Creado', description: `${newContactData.name} ha sido agregado y sincronizado en HiperFlow.` });
-      })
-      .catch(serverError => {
-        const permissionError = new FirestorePermissionError({
-          path: contactsCollection.path,
-          operation: 'create',
-          requestResourceData: newContactData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        // Optional: you can still show a generic toast here if you want, but the main error is now being thrown for Next.js to catch.
-        toast({ title: 'Error al Guardar', description: 'No se pudo crear el contacto. Comprueba los permisos.', variant: 'destructive' });
-      });
+
+    if (editingContact) {
+        // Update existing contact
+        const contactRef = doc(firestore, 'contacts', editingContact.id);
+        setDoc(contactRef, { ...contactData, createdAt: editingContact.createdAt }, { merge: true })
+          .then(() => {
+            toast({ title: 'Contacto Actualizado', description: `${contactData.name} ha sido actualizado.` });
+          })
+          .catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+              path: contactRef.path,
+              operation: 'update',
+              requestResourceData: contactData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ title: 'Error al Actualizar', description: 'No se pudo actualizar el contacto.', variant: 'destructive' });
+          });
+    } else {
+        // Create new contact
+        const newContactData = { ...contactData, createdAt: serverTimestamp() };
+        const contactsCollection = collection(firestore, 'contacts');
+        addDoc(contactsCollection, newContactData)
+          .then(() => {
+            toast({ title: 'Contacto Creado', description: `${newContactData.name} ha sido agregado y sincronizado en HiperFlow.` });
+          })
+          .catch(serverError => {
+            const permissionError = new FirestorePermissionError({
+              path: contactsCollection.path,
+              operation: 'create',
+              requestResourceData: newContactData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ title: 'Error al Guardar', description: 'No se pudo crear el contacto. Comprueba los permisos.', variant: 'destructive' });
+          });
+    }
   };
 
+  const handleOpenNew = () => {
+    setEditingContact(undefined);
+    setIsSheetOpen(true);
+  }
+
+  const handleOpenEdit = (contact: WithId<Contact>) => {
+    setEditingContact(contact);
+    setIsSheetOpen(true);
+  }
+
+  const handleCloseSheet = () => {
+    setIsSheetOpen(false);
+    setEditingContact(undefined);
+  }
 
   const handleSaveContact = (formData: ContactFormData) => {
     saveContact(formData);
-    setIsSheetOpen(false);
+    handleCloseSheet();
   };
 
   const handleSaveAndCreateOpportunity = (formData: ContactFormData) => {
     saveContact(formData);
-    setIsSheetOpen(false);
-    // Here you would typically open the "New Opportunity" sheet/modal,
-    // potentially pre-filling it with the new contact's data.
-    // For now, we'll just show a toast.
+    handleCloseSheet();
     toast({
       title: "Próximo Paso: Crear Oportunidad",
       description: "Funcionalidad para abrir el formulario de oportunidad no implementada aún.",
@@ -283,16 +314,16 @@ export default function ContactsPage() {
   return (
     <>
       <PageHeader title="Contactos" description="Gestiona los contactos de tus clientes y potenciales clientes.">
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nuevo Contacto
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="sm:max-w-4xl w-full">
+        <Button onClick={handleOpenNew}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nuevo Contacto
+        </Button>
+      </PageHeader>
+      
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+          <SheetContent side="right" className="sm:max-w-4xl w-full" onInteractOutside={handleCloseSheet}>
             <SheetHeader className="text-left pr-6">
-              <SheetTitle>Crear Nuevo Contacto</SheetTitle>
+              <SheetTitle>{editingContact ? 'Editar Contacto' : 'Crear Nuevo Contacto'}</SheetTitle>
               <SheetDescription>
                 Completa los datos de tu cliente o lead. Puedes usar la IA para enriquecer automáticamente información como cargo, empresa o redes sociales.
               </SheetDescription>
@@ -302,12 +333,18 @@ export default function ContactsPage() {
             </SheetHeader>
             <ScrollArea className="h-[calc(100vh-10rem)] pr-6">
                <div className="py-6">
-                 <ContactForm onSave={handleSaveContact} onSaveAndCreateOpportunity={handleSaveAndCreateOpportunity} onCancel={() => setIsSheetOpen(false)} companies={companies}/>
+                 <ContactForm 
+                    contact={editingContact}
+                    onSave={handleSaveContact} 
+                    onSaveAndCreateOpportunity={handleSaveAndCreateOpportunity} 
+                    onCancel={handleCloseSheet} 
+                    companies={companies}
+                 />
                </div>
             </ScrollArea>
           </SheetContent>
         </Sheet>
-      </PageHeader>
+        
       <Card>
         <CardHeader>
           <CardTitle>Lista de Contactos</CardTitle>
@@ -336,16 +373,8 @@ export default function ContactsPage() {
                   return (
                     <TableRow key={contact.id}>
                       <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={contact.avatarUrl} alt={contact.name} />
-                            <AvatarFallback><UserCircle /></AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">{contact.name}</div>
-                            <div className="text-sm text-muted-foreground">{contact.email}</div>
-                          </div>
-                        </div>
+                        <div className="font-medium">{contact.name}</div>
+                        <div className="text-sm text-muted-foreground">{contact.email}</div>
                       </TableCell>
                       <TableCell>{company?.name || 'N/A'}</TableCell>
                       <TableCell>{location || 'N/A'}</TableCell>
@@ -356,8 +385,8 @@ export default function ContactsPage() {
                             <Button variant="ghost" size="icon"><MoreHorizontal className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Ver</DropdownMenuItem>
-                            <DropdownMenuItem>Editar</DropdownMenuItem>
+                            <DropdownMenuItem disabled>Ver</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenEdit(contact)}>Editar</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive">Eliminar</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -373,3 +402,5 @@ export default function ContactsPage() {
     </>
   );
 }
+
+    
