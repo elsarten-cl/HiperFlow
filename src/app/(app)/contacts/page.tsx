@@ -11,17 +11,15 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { Contact, Company } from '@/lib/types';
-import { MoreHorizontal, Plus, UserCircle, Sparkles, BrainCircuit, Rocket, Save } from 'lucide-react';
+import { MoreHorizontal, Plus, UserCircle, BrainCircuit, Rocket, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { enrichContactData } from '@/ai/flows/enrich-contact-data';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, WithId } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, WithId } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -221,49 +219,43 @@ export default function ContactsPage() {
   const companiesRef = useMemoFirebase(() => firestore ? collection(firestore, 'companies') : null, [firestore]);
   const { data: companies, isLoading: isLoadingCompanies } = useCollection<Company>(companiesRef);
 
-  const saveContact = (formData: ContactFormData): string | null => {
+  const saveContact = (formData: ContactFormData) => {
     if (!firestore) {
       toast({ title: 'Error', description: 'La base de datos no está disponible.', variant: 'destructive' });
-      return null;
+      return;
     }
 
-    // This is a simplified version. In a real app, you'd check if company exists or create it.
-    const companyId = companies?.find(c => c.name.toLowerCase() === formData.companyName?.toLowerCase())?.id || '';
-
-    const newContact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'lastContacted'> = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone || '',
-      jobTitle: formData.jobTitle || '',
-      companyId: companyId,
-      linkedinProfile: formData.linkedinProfile || '',
-      source: formData.source || 'desconocido',
-      interestLevel: formData.interestLevel,
-      mainInterest: formData.mainInterest || '',
-      internalNotes: formData.internalNotes || '',
-      city: formData.city || '',
-      country: formData.country || '',
-      timezone: formData.timezone || '',
-      nextStep: formData.nextStep || '',
-      avatarUrl: `https://picsum.photos/seed/${Date.now()}/40/40`,
-      teamId: teamId,
+    const company = companies?.find(c => c.name.toLowerCase() === formData.companyName?.toLowerCase());
+    const companyId = company ? company.id : '';
+    
+    const newContactData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || '',
+        jobTitle: formData.jobTitle || '',
+        companyId: companyId,
+        linkedinProfile: formData.linkedinProfile || '',
+        source: formData.source || 'desconocido',
+        interestLevel: formData.interestLevel,
+        mainInterest: formData.mainInterest || '',
+        internalNotes: formData.internalNotes || '',
+        city: formData.city || '',
+        country: formData.country || '',
+        timezone: formData.timezone || '',
+        nextStep: formData.nextStep || '',
+        avatarUrl: `https://picsum.photos/seed/${Date.now()}/40/40`,
+        teamId: teamId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        lastContacted: serverTimestamp(),
     };
-    
-    const contactsCollection = collection(firestore, 'contacts');
-    
-    addDoc(contactsCollection, {
-      ...newContact,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      lastContacted: serverTimestamp(),
+
+    addDoc(collection(firestore, 'contacts'), newContactData).then(() => {
+        toast({ title: 'Contacto Creado', description: `${newContactData.name} ha sido agregado y sincronizado en HiperFlow.` });
     }).catch(error => {
       console.error("Error adding document: ", error);
       toast({ title: 'Error al Guardar', description: 'No se pudo crear el contacto en la base de datos.', variant: 'destructive' });
     });
-    
-    toast({ title: 'Contacto Creado', description: `${newContact.name} ha sido agregado y sincronizado en HiperFlow.` });
-    
-    return newContact.email; 
   };
 
 
@@ -353,7 +345,7 @@ export default function ContactsPage() {
                       </TableCell>
                       <TableCell>{company?.name || 'N/A'}</TableCell>
                       <TableCell>{location || 'N/A'}</TableCell>
-                      <TableCell>{contact.lastContacted && new Date(contact.lastContacted).toLocaleDateString()}</TableCell>
+                      <TableCell>{contact.lastContacted && new Date((contact.lastContacted as any).seconds * 1000).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -377,5 +369,3 @@ export default function ContactsPage() {
     </>
   );
 }
-
-    
