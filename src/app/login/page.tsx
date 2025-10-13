@@ -1,0 +1,87 @@
+
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuth, useUser, initiateAnonymousSignIn } from '@/firebase';
+import { User } from 'lucide-react';
+
+const HiperFlowLogo = () => (
+  <svg
+    width="48"
+    height="48"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="text-primary"
+  >
+    <path
+      d="M12 2L2 7V17L12 22L22 17V7L12 2Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M2 7L12 12L22 7"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M12 12V22"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
+export default function LoginPage() {
+  const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/');
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleAnonymousSignIn = () => {
+    initiateAnonymousSignIn(auth);
+  };
+  
+  if (isUserLoading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Redirigiendo...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
+      <div className="flex items-center gap-4 mb-8">
+        <HiperFlowLogo />
+        <h1 className="text-4xl font-headline font-bold">HiperFlow</h1>
+      </div>
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center">
+          <CardTitle>Bienvenido</CardTitle>
+          <CardDescription>Inicia sesión para continuar en tu espacio de trabajo.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Aquí podrías agregar campos de email/contraseña en el futuro */}
+        </CardContent>
+        <CardFooter>
+          <Button className="w-full" onClick={handleAnonymousSignIn}>
+            <User className="mr-2 h-4 w-4" />
+            Ingresar como Anónimo
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Briefcase,
   Users,
@@ -12,6 +12,7 @@ import {
   UserCircle,
   History,
   Menu,
+  LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,7 +30,8 @@ import {
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { useAuth, useUser } from '@/firebase';
+import { getAuth } from 'firebase/auth';
 
 const HiperFlowLogo = () => (
   <svg
@@ -72,97 +74,121 @@ const navItems = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+
+  React.useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleSignOut = () => {
+    if (auth) {
+      auth.signOut();
+    }
+  };
+
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center">
+        <p>Cargando...</p>
+      </div>
+    );
+  }
 
   return (
-    <FirebaseClientProvider>
-      <div className="flex min-h-screen w-full flex-col">
-        <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
-          <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
+    <div className="flex min-h-screen w-full flex-col">
+      <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+        <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-headline text-lg font-semibold"
+          >
+            <HiperFlowLogo />
+            <span>HiperFlow</span>
+          </Link>
+          {navItems.map(({ href, label }) => (
             <Link
-              href="/"
-              className="flex items-center gap-2 font-headline text-lg font-semibold"
+              key={href}
+              href={href}
+              className={cn(
+                'transition-colors hover:text-foreground',
+                pathname === href
+                  ? 'text-foreground'
+                  : 'text-muted-foreground'
+              )}
             >
-              <HiperFlowLogo />
-              <span>HiperFlow</span>
+              {label}
             </Link>
-            {navItems.map(({ href, label }) => (
+          ))}
+        </nav>
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="shrink-0 md:hidden"
+            >
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle navigation menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left">
+            <nav className="grid gap-6 text-lg font-medium">
               <Link
-                key={href}
-                href={href}
-                className={cn(
-                  'transition-colors hover:text-foreground',
-                  pathname === href
-                    ? 'text-foreground'
-                    : 'text-muted-foreground'
-                )}
+                href="#"
+                className="flex items-center gap-2 text-lg font-semibold"
               >
-                {label}
+                <HiperFlowLogo />
+                <span className="sr-only">HiperFlow</span>
               </Link>
-            ))}
-          </nav>
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="shrink-0 md:hidden"
-              >
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle navigation menu</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left">
-              <nav className="grid gap-6 text-lg font-medium">
+              {navItems.map(({ href, label, icon: Icon }) => (
                 <Link
-                  href="#"
-                  className="flex items-center gap-2 text-lg font-semibold"
+                  key={href}
+                  href={href}
+                  className={cn(
+                    'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
+                    pathname === href && 'text-primary bg-muted'
+                  )}
                 >
-                  <HiperFlowLogo />
-                  <span className="sr-only">HiperFlow</span>
+                  <Icon className="h-5 w-5" />
+                  {label}
                 </Link>
-                {navItems.map(({ href, label, icon: Icon }) => (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                      'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
-                      pathname === href && 'text-primary bg-muted'
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
-                    {label}
-                  </Link>
-                ))}
-              </nav>
-            </SheetContent>
-          </Sheet>
-          <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4 justify-end">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <Avatar>
-                    <AvatarImage src="https://picsum.photos/seed/9/40/40" alt="Avatar de Usuario" />
-                    <AvatarFallback>
-                      <UserCircle />
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Configuración</DropdownMenuItem>
-                <DropdownMenuItem>Soporte</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>Cerrar Sesión</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-          {children}
-        </main>
-      </div>
-    </FirebaseClientProvider>
+              ))}
+            </nav>
+          </SheetContent>
+        </Sheet>
+        <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4 justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <Avatar>
+                  <AvatarImage src={user.photoURL || "https://picsum.photos/seed/9/40/40"} alt="Avatar de Usuario" />
+                  <AvatarFallback>
+                    <UserCircle />
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>{user.isAnonymous ? "Usuario Anónimo" : user.email}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>Configuración</DropdownMenuItem>
+              <DropdownMenuItem>Soporte</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Cerrar Sesión
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </header>
+      <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+        {children}
+      </main>
+    </div>
   );
 }
