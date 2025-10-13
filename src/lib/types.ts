@@ -8,7 +8,7 @@ export type Contact = {
   companyId: string;
   avatarUrl: string;
   phone?: string;
-  socials?: string;
+  socials?: string[];
   lastContacted: string | Timestamp;
   city?: string;
   country?: string;

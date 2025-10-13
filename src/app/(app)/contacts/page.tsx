@@ -29,7 +29,7 @@ const contactSchema = z.object({
   phone: z.string().optional(),
   jobTitle: z.string().optional(),
   companyName: z.string().optional(),
-  socials: z.string().url({ message: "Por favor, introduce una URL válida." }).optional().or(z.literal('')),
+  socials: z.string().optional(),
   source: z.string().optional(),
   mainInterest: z.string().optional(),
   interestLevel: z.enum(['bajo', 'medio', 'alto']).optional(),
@@ -113,7 +113,7 @@ const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }
             )} />
           </div>
            <FormField control={form.control} name="socials" render={({ field }) => (
-              <FormItem><FormLabel>Redes Sociales</FormLabel><FormControl><Input {...field} placeholder="Pega aquí la URL de su perfil principal (LinkedIn, Instagram, etc.)" className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+              <FormItem><FormLabel>Redes Sociales</FormLabel><FormControl><Textarea {...field} placeholder="Pega aquí las URLs de los perfiles, una por línea..." className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
             )} />
         </div>
         
@@ -229,7 +229,7 @@ export default function ContactsPage() {
         phone: formData.phone || '',
         jobTitle: formData.jobTitle || '',
         companyId: companyId,
-        socials: formData.socials || '',
+        socials: formData.socials?.split('\n') || [],
         source: formData.source || 'desconocido',
         interestLevel: formData.interestLevel,
         mainInterest: formData.mainInterest || '',
