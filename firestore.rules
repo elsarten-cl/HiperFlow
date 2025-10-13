@@ -1,310 +1,218 @@
 /**
- * @fileoverview Firestore Security Rules for HiperFlow CRM.
- *
- * Core Philosophy:
- * This ruleset enforces a multi-tenant data model where data access is strictly scoped to the user's team.
- * All data is nested under /teams/{teamId}, and access is granted based on team membership.
- *
- * Data Structure:
- * The database is structured with a top-level /teams/{teamId} collection. Each team acts as a
- * container for all data related to that team, including users, companies, contacts, pipelines, etc.
- *
- * Key Security Decisions:
- * - All data access requires a valid, authenticated user.
- * - Listing of any collection is only allowed for members of the team who own the data (teamId matches).
- * - Data consistency between the path and the document's internal fields is enforced on create and update.
- *
- * Denormalization for Authorization:
- * The `teamId` is present on every document to avoid costly `get()` calls and enable simple team-based authorization.
+ * @description This ruleset enforces a strict team-based multi-tenant security model for the HiperFlow CRM application.
+ * All data access is scoped to a specific team, identified by `teamId`.
+ * @dataStructure The data is organized hierarchically under the `/teams/{teamId}` path. Each subcollection (e.g., `/teams/{teamId}/users/{userId}`, `/teams/{teamId}/companies/{companyId}`) represents entities associated with that team.
+ * @keySecurityDecisions
+ *  - Access to all data is restricted to authenticated users.
+ *  - Users can only access data within their assigned team (i.e., the `teamId` in their authentication token must match the `teamId` of the document).
+ *  - List operations are secured to prevent unauthorized access to data from other teams.
+ *  - Data validation is relaxed during this prototyping phase, focusing on authorization and relational integrity.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper function to check if the user is signed in.
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    // Helper function to check if the user is the owner of the team.
-    function isOwner(teamId) {
-      return isSignedIn() && request.auth.uid == teamId;
-    }
-
-    // Helper function to check if the user is the owner of the team and the resource exists.
-    function isExistingOwner(teamId) {
-      return isOwner(teamId) && resource != null;
-    }
-
     /**
-     * @description Grants access to team documents only to authenticated users.
+     * @description Allows access to team documents based on team ID.
      * @path /teams/{teamId}
-     * @allow (get, list) if isSignedIn()
-     * @allow (create, update, delete) if false
-     * @deny (get, list) if !isSignedIn()
-     * @deny (create) if true
-     * @deny (update) if true
-     * @deny (delete) if true
-     * @principle Restricts access to Team collection to authenticated users and prevent write operations.
+     * @allow (get) Authenticated user can get team data.
+     * @deny (create) Unauthorized user cannot create team data.
+     * @principle Enforces team-based access control.
      */
     match /teams/{teamId} {
       allow get: if isSignedIn();
-      allow list: if isSignedIn();
+      allow list: if false; // Listing teams is not permitted.
       allow create: if false;
       allow update: if false;
       allow delete: if false;
     }
 
     /**
-     * @description Grants access to user documents only to authenticated users who belong to the team.
+     * @description Allows access to user documents within a team.
      * @path /teams/{teamId}/users/{userId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isSignedIn() && request.resource.data.id == request.auth.uid && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.id == resource.data.id && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isSignedIn() || request.resource.data.id != request.auth.uid || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.id != resource.data.id || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes, restricts access to a user's own data tree, and validates relational integrity between documents.
+     * @allow (get) Authenticated user can get user data within their team.
+     * @deny (create) Unauthorized user cannot create user data.
+     * @principle Enforces team-based access control for user data.
      */
     match /teams/{teamId}/users/{userId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isSignedIn() && request.resource.data.id == request.auth.uid && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.id == resource.data.id && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.id == userId && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource.data.id == request.resource.data.id && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
     }
 
     /**
-     * @description Grants access to company documents only to authenticated users who belong to the team.
+     * @description Allows access to company documents within a team.
      * @path /teams/{teamId}/companies/{companyId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes and restricts access to a team's data.
+     * @allow (get) Authenticated user can get company data within their team.
+     * @deny (create) Unauthorized user cannot create company data.
+     * @principle Enforces team-based access control for company data.
      */
     match /teams/{teamId}/companies/{companyId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isOwner(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
     }
 
     /**
-     * @description Grants access to contact documents only to authenticated users who belong to the team.
+     * @description Allows access to contact documents within a team.
      * @path /teams/{teamId}/contacts/{contactId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes and restricts access to a team's data.
+     * @allow (get) Authenticated user can get contact data within their team.
+     * @deny (create) Unauthorized user cannot create contact data.
+     * @principle Enforces team-based access control for contact data.
      */
     match /teams/{teamId}/contacts/{contactId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isOwner(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
     }
 
     /**
-     * @description Grants access to pipeline documents only to authenticated users who belong to the team.
+     * @description Allows access to pipeline documents within a team.
      * @path /teams/{teamId}/pipelines/{pipelineId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes and restricts access to a team's data.
+     * @allow (get) Authenticated user can get pipeline data within their team.
+     * @deny (create) Unauthorized user cannot create pipeline data.
+     * @principle Enforces team-based access control for pipeline data.
      */
     match /teams/{teamId}/pipelines/{pipelineId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isOwner(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
     }
 
     /**
-     * @description Grants access to stage documents only to authenticated users who belong to the team.
+     * @description Allows access to stage documents within a pipeline within a team.
      * @path /teams/{teamId}/pipelines/{pipelineId}/stages/{stageId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes and restricts access to a team's data.
+     * @allow (get) Authenticated user can get stage data within their team.
+     * @deny (create) Unauthorized user cannot create stage data.
+     * @principle Enforces team-based access control for stage data.
      */
     match /teams/{teamId}/pipelines/{pipelineId}/stages/{stageId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isOwner(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.pipelineId == pipelineId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
     }
 
     /**
-     * @description Grants access to deal documents only to authenticated users who belong to the team.
+     * @description Allows access to deal documents within a team.
      * @path /teams/{teamId}/deals/{dealId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes and restricts access to a team's data.
+     * @allow (get) Authenticated user can get deal data within their team.
+     * @deny (create) Unauthorized user cannot create deal data.
+     * @principle Enforces team-based access control for deal data.
      */
     match /teams/{teamId}/deals/{dealId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isOwner(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
     }
 
     /**
-     * @description Grants access to activity documents only to authenticated users who belong to the team.
+     * @description Allows access to activity documents within a team.
      * @path /teams/{teamId}/activities/{activityId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes and restricts access to a team's data.
+     * @allow (get) Authenticated user can get activity data within their team.
+     * @deny (create) Unauthorized user cannot create activity data.
+     * @principle Enforces team-based access control for activity data.
      */
     match /teams/{teamId}/activities/{activityId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isOwner(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
     }
 
     /**
-     * @description Grants access to message documents only to authenticated users who belong to the team.
+     * @description Allows access to message documents within a team.
      * @path /teams/{teamId}/messages/{messageId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes and restricts access to a team's data.
+     * @allow (get) Authenticated user can get message data within their team.
+     * @deny (create) Unauthorized user cannot create message data.
+     * @principle Enforces team-based access control for message data.
      */
     match /teams/{teamId}/messages/{messageId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isOwner(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
     }
 
     /**
-     * @description Grants access to channel documents only to authenticated users who belong to the team.
+     * @description Allows access to channel documents within a team.
      * @path /teams/{teamId}/channels/{channelId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes and restricts access to a team's data.
+     * @allow (get) Authenticated user can get channel data within their team.
+     * @deny (create) Unauthorized user cannot create channel data.
+     * @principle Enforces team-based access control for channel data.
      */
     match /teams/{teamId}/channels/{channelId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isOwner(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
     }
 
     /**
-     * @description Grants access to webhook documents only to authenticated users who belong to the team.
+     * @description Allows access to webhook documents within a team.
      * @path /teams/{teamId}/webhooks/{webhookId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes and restricts access to a team's data.
+     * @allow (get) Authenticated user can get webhook data within their team.
+     * @deny (create) Unauthorized user cannot create webhook data.
+     * @principle Enforces team-based access control for webhook data.
      */
     match /teams/{teamId}/webhooks/{webhookId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isOwner(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
     }
 
     /**
-     * @description Grants access to job documents only to authenticated users who belong to the team.
+     * @description Allows access to job documents within a team.
      * @path /teams/{teamId}/jobs/{jobId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes and restricts access to a team's data.
+     * @allow (get) Authenticated user can get job data within their team.
+     * @deny (create) Unauthorized user cannot create job data.
+     * @principle Enforces team-based access control for job data.
      */
     match /teams/{teamId}/jobs/{jobId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isOwner(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
     }
 
     /**
-     * @description Grants access to socialPost documents only to authenticated users who belong to the team.
+     * @description Allows access to socialPost documents within a team.
      * @path /teams/{teamId}/socialPosts/{socialPostId}
-     * @allow (get, list) if isOwner(teamId)
-     * @allow (create) if isOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (update) if isExistingOwner(teamId) && request.resource.data.teamId == teamId
-     * @allow (delete) if isExistingOwner(teamId)
-     * @deny (get, list) if !isOwner(teamId)
-     * @deny (create) if !isOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (update) if !isExistingOwner(teamId) || request.resource.data.teamId != teamId
-     * @deny (delete) if !isExistingOwner(teamId)
-     * @principle Enforces document ownership for writes and restricts access to a team's data.
+     * @allow (get) Authenticated user can get socialPost data within their team.
+     * @deny (create) Unauthorized user cannot create socialPost data.
+     * @principle Enforces team-based access control for socialPost data.
      */
     match /teams/{teamId}/socialPosts/{socialPostId} {
-      allow get: if isOwner(teamId);
-      allow list: if isOwner(teamId);
-      allow create: if isOwner(teamId) && request.resource.data.teamId == teamId;
-      allow update: if isExistingOwner(teamId) && request.resource.data.teamId == teamId;
-      allow delete: if isExistingOwner(teamId);
+      allow get: if isSignedIn() && isTeamMember(teamId);
+      allow list: if isSignedIn() && isTeamMember(teamId);
+      allow create: if isSignedIn() && isTeamMember(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isTeamMember(teamId) && resource != null;
+      allow delete: if isSignedIn() && isTeamMember(teamId) && resource != null;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isTeamMember(teamId) {
+        return isSignedIn() && request.auth.uid != null && get(/databases/$(database)/documents/teams/$(teamId)/users/$(request.auth.uid)).data.teamId == teamId;
     }
   }
 }
