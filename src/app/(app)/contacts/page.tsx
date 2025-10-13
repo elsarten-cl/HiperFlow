@@ -1,14 +1,18 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger, SheetFooter } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import type { Contact, Company } from '@/lib/types';
 import { MoreHorizontal, Plus, UserCircle, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -16,41 +20,52 @@ import { enrichContactData } from '@/ai/flows/enrich-contact-data';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, WithId } from '@/firebase';
 import { collection } from 'firebase/firestore';
 
-const ContactForm = ({ contact, onSave, onCancel, companies }: { contact?: Partial<Contact> | null; onSave: (contact: Partial<Contact>) => void; onCancel: () => void; companies: WithId<Company>[] | null; }) => {
-  const [formData, setFormData] = useState({
-    name: contact?.name || '',
-    email: contact?.email || '',
-    jobTitle: contact?.jobTitle || '',
-    linkedinProfile: contact?.linkedinProfile || '',
-    city: contact?.city || '',
-    country: contact?.country || '',
-    companyId: contact?.companyId || '',
+const contactSchema = z.object({
+  name: z.string().min(1, { message: 'El nombre es requerido.' }),
+  email: z.string().email({ message: 'El correo electrónico no es válido.' }),
+  phone: z.string().optional(),
+  jobTitle: z.string().optional(),
+  linkedinProfile: z.string().optional(),
+  city: z.string().optional(),
+  country: z.string().optional(),
+  companyId: z.string().optional(),
+});
+
+type ContactFormData = z.infer<typeof contactSchema>;
+
+const ContactForm = ({ contact, onSave, onCancel, companies }: { contact?: Partial<ContactFormData> | null; onSave: (contact: ContactFormData) => void; onCancel: () => void; companies: WithId<Company>[] | null; }) => {
+  const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactSchema),
+    defaultValues: {
+      name: contact?.name || '',
+      email: contact?.email || '',
+      phone: contact?.phone || '',
+      jobTitle: contact?.jobTitle || '',
+      linkedinProfile: contact?.linkedinProfile || '',
+      city: contact?.city || '',
+      country: contact?.country || '',
+      companyId: contact?.companyId || '',
+    },
   });
+  
   const [isEnriching, setIsEnriching] = useState(false);
   const { toast } = useToast();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({...prev, [name]: value}));
-  };
-
   const handleEnrich = async () => {
     setIsEnriching(true);
+    const currentData = form.getValues();
     try {
       const result = await enrichContactData({
-        name: formData.name,
-        company: companies?.find(c => c.id === formData.companyId)?.name,
-        email: formData.email,
+        name: currentData.name,
+        company: companies?.find(c => c.id === currentData.companyId)?.name,
+        email: currentData.email,
       });
       if (result.enriched) {
-        setFormData(prev => ({
-          ...prev,
-          jobTitle: result.jobTitle || prev.jobTitle,
-          linkedinProfile: result.linkedinProfile || prev.linkedinProfile,
-          email: result.email || prev.email,
-          city: result.city || prev.city,
-          country: result.country || prev.country,
-        }));
+        form.setValue('jobTitle', result.jobTitle || currentData.jobTitle);
+        form.setValue('linkedinProfile', result.linkedinProfile || currentData.linkedinProfile);
+        form.setValue('email', result.email || currentData.email);
+        form.setValue('city', result.city || currentData.city);
+        form.setValue('country', result.country || currentData.country);
         toast({ title: "¡Contacto enriquecido!", description: "La IA ha rellenado los detalles que faltaban." });
       } else {
         toast({ title: "Falló el enriquecimiento", description: "No se pudo encontrar información adicional.", variant: 'destructive' });
@@ -63,47 +78,111 @@ const ContactForm = ({ contact, onSave, onCancel, companies }: { contact?: Parti
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave(formData);
-  };
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Nombre</Label>
-        <Input id="name" name="name" value={formData.name} onChange={handleChange} required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="jobTitle">Cargo</Label>
-        <Input id="jobTitle" name="jobTitle" value={formData.jobTitle} onChange={handleChange} />
-      </div>
-       <div className="space-y-2">
-        <Label htmlFor="linkedinProfile">Perfil de LinkedIn</Label>
-        <Input id="linkedinProfile" name="linkedinProfile" value={formData.linkedinProfile} onChange={handleChange} />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="city">Ciudad</Label>
-          <Input id="city" name="city" value={formData.city} onChange={handleChange} />
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSave)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nombre</FormLabel>
+              <FormControl>
+                <Input {...field} required />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email</FormLabel>
+              <FormControl>
+                <Input type="email" {...field} required />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Teléfono / WhatsApp</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="jobTitle"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Cargo</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+         <FormField
+          control={form.control}
+          name="linkedinProfile"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Perfil de LinkedIn</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="city"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ciudad</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="country"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>País</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="country">País</Label>
-          <Input id="country" name="country" value={formData.country} onChange={handleChange} />
-        </div>
-      </div>
-      <SheetFooter className="pt-4">
-        <Button variant="outline" onClick={onCancel}>Cancelar</Button>
-        <Button type="button" variant="outline" onClick={handleEnrich} disabled={isEnriching || !formData.name}>
-          <Sparkles className="mr-2 h-4 w-4" /> {isEnriching ? 'Enriqueciendo...' : 'Enriquecer con IA'}
-        </Button>
-        <Button type="submit">Guardar</Button>
-      </SheetFooter>
-    </form>
+        <SheetFooter className="pt-4">
+          <Button variant="outline" type="button" onClick={onCancel}>Cancelar</Button>
+          <Button type="button" variant="outline" onClick={handleEnrich} disabled={isEnriching || !form.getValues().name}>
+            <Sparkles className="mr-2 h-4 w-4" /> {isEnriching ? 'Enriqueciendo...' : 'Enriquecer con IA'}
+          </Button>
+          <Button type="submit">Guardar</Button>
+        </SheetFooter>
+      </form>
+    </Form>
   )
 }
 
@@ -120,18 +199,19 @@ export default function ContactsPage() {
   const companiesRef = useMemoFirebase(() => collection(firestore, 'companies'), [firestore]);
   const { data: companies, isLoading: isLoadingCompanies } = useCollection<Company>(companiesRef);
 
-  const handleSaveContact = (formData: Partial<Contact>) => {
-    const newContact: Omit<WithId<Contact>, 'id'> = {
-      name: formData.name || '',
-      email: formData.email || '',
+  const handleSaveContact = (formData: ContactFormData) => {
+    const newContact: Omit<WithId<Contact>, 'id' | 'lastContacted'> = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone || '',
       jobTitle: formData.jobTitle || 'N/A',
       companyId: formData.companyId || '',
       avatarUrl: `https://picsum.photos/seed/${Date.now()}/40/40`,
-      lastContacted: new Date().toISOString(),
       teamId: teamId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      ...formData
+      ...formData,
+      lastContacted: new Date().toISOString()
     };
 
     const contactsCollection = collection(firestore, 'contacts');

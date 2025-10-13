@@ -7,6 +7,7 @@ export type Contact = {
   jobTitle: string;
   companyId: string;
   avatarUrl: string;
+  phone?: string;
   linkedinProfile?: string;
   lastContacted: string;
   city?: string;
