@@ -9,6 +9,8 @@ export type Contact = {
   avatarUrl: string;
   phone?: string;
   linkedinProfile?: string;
+  instagramProfile?: string;
+  facebookProfile?: string;
   lastContacted: string | Timestamp;
   city?: string;
   country?: string;
@@ -19,7 +21,6 @@ export type Contact = {
   mainInterest?: string;
   interestLevel?: 'bajo' | 'medio' | 'alto';
   internalNotes?: string;
-  timezone?: string;
   nextStep?: string;
 };
 
@@ -80,5 +81,3 @@ export type Conversation = {
   contactId: string;
   messages: Message[];
 };
-
-    

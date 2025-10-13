@@ -30,13 +30,14 @@ const contactSchema = z.object({
   jobTitle: z.string().optional(),
   companyName: z.string().optional(),
   linkedinProfile: z.string().url({ message: "Por favor, introduce una URL de LinkedIn válida." }).optional().or(z.literal('')),
+  instagramProfile: z.string().url({ message: "Por favor, introduce una URL de Instagram válida." }).optional().or(z.literal('')),
+  facebookProfile: z.string().url({ message: "Por favor, introduce una URL de Facebook válida." }).optional().or(z.literal('')),
   source: z.string().optional(),
   mainInterest: z.string().optional(),
   interestLevel: z.enum(['bajo', 'medio', 'alto']).optional(),
   internalNotes: z.string().optional(),
   city: z.string().optional(),
   country: z.string().optional(),
-  timezone: z.string().optional(),
   nextStep: z.string().optional(),
 });
 
@@ -52,12 +53,13 @@ const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }
       jobTitle: '',
       companyName: '',
       linkedinProfile: '',
+      instagramProfile: '',
+      facebookProfile: '',
       source: '',
       mainInterest: '',
       internalNotes: '',
       city: '',
       country: '',
-      timezone: '',
       nextStep: '',
     },
   });
@@ -78,6 +80,8 @@ const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }
       if (result.enriched) {
         form.setValue('jobTitle', result.jobTitle || currentData.jobTitle);
         form.setValue('linkedinProfile', result.linkedinProfile || currentData.linkedinProfile);
+        form.setValue('instagramProfile', result.instagramProfile || currentData.instagramProfile);
+        form.setValue('facebookProfile', result.facebookProfile || currentData.facebookProfile);
         form.setValue('email', result.email || currentData.email);
         form.setValue('city', result.city || currentData.city);
         form.setValue('country', result.country || currentData.country);
@@ -115,7 +119,13 @@ const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }
             )} />
           </div>
            <FormField control={form.control} name="linkedinProfile" render={({ field }) => (
-              <FormItem><FormLabel>Perfil de LinkedIn</FormLabel><FormControl><Input {...field} placeholder="Pega aquí la URL completa de su perfil profesional." className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+              <FormItem><FormLabel>Perfil de LinkedIn</FormLabel><FormControl><Input {...field} placeholder="Pega aquí la URL de su perfil de LinkedIn." className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="instagramProfile" render={({ field }) => (
+                <FormItem><FormLabel>Perfil de Instagram</FormLabel><FormControl><Input {...field} placeholder="Pega aquí la URL de su perfil de Instagram." className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
+            )} />
+            <FormField control={form.control} name="facebookProfile" render={({ field }) => (
+                <FormItem><FormLabel>Perfil de Facebook</FormLabel><FormControl><Input {...field} placeholder="Pega aquí la URL de su perfil de Facebook." className="bg-background/80 focus:border-primary" /></FormControl><FormMessage /></FormItem>
             )} />
         </div>
         
@@ -169,15 +179,12 @@ const ContactForm = ({ onSave, onSaveAndCreateOpportunity, onCancel, companies }
         {/* Section 3: Ubicación y Seguimiento */}
         <div className="space-y-4">
           <h3 className="text-lg font-medium font-headline">Ubicación y Seguimiento</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField control={form.control} name="city" render={({ field }) => (
               <FormItem><FormLabel>Ciudad</FormLabel><FormControl><Input {...field} className="bg-background/80 focus:border-primary"/></FormControl><FormMessage /></FormItem>
             )} />
             <FormField control={form.control} name="country" render={({ field }) => (
               <FormItem><FormLabel>País</FormLabel><FormControl><Input {...field} className="bg-background/80 focus:border-primary"/></FormControl><FormMessage /></FormItem>
-            )} />
-             <FormField control={form.control} name="timezone" render={({ field }) => (
-              <FormItem><FormLabel>Zona Horaria</FormLabel><FormControl><Input {...field} placeholder="Ej: GMT-3" className="bg-background/80 focus:border-primary"/></FormControl><FormMessage /></FormItem>
             )} />
           </div>
           <FormField control={form.control} name="nextStep" render={({ field }) => (
@@ -235,13 +242,14 @@ export default function ContactsPage() {
         jobTitle: formData.jobTitle || '',
         companyId: companyId,
         linkedinProfile: formData.linkedinProfile || '',
+        instagramProfile: formData.instagramProfile || '',
+        facebookProfile: formData.facebookProfile || '',
         source: formData.source || 'desconocido',
         interestLevel: formData.interestLevel,
         mainInterest: formData.mainInterest || '',
         internalNotes: formData.internalNotes || '',
         city: formData.city || '',
         country: formData.country || '',
-        timezone: formData.timezone || '',
         nextStep: formData.nextStep || '',
         avatarUrl: `https://picsum.photos/seed/${Date.now()}/40/40`,
         teamId: teamId,
