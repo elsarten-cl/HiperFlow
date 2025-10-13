@@ -6,10 +6,13 @@ import { Plus } from 'lucide-react';
 export default function DashboardPage() {
   return (
     <>
-      <PageHeader title="Pipeline de Tratos" description="Visualiza y sigue tu proceso de ventas.">
+      <PageHeader
+        title="Flow de Ventas"
+        description="Visualiza y avanza tus oportunidades con claridad."
+      >
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Nuevo Trato
+          Nueva Oportunidad
         </Button>
       </PageHeader>
       <KanbanBoard />

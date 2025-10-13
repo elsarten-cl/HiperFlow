@@ -1,4 +1,5 @@
 import { type Company, type Contact, type Deal, type DealStage, type Conversation, type Activity } from '@/lib/types';
+import { serverTimestamp } from 'firebase/firestore';
 
 export const companies: Company[] = [
   { id: 'comp-1', name: 'Innovate Inc.', domain: 'innovateinc.com', industry: 'Tecnología' },
@@ -8,23 +9,17 @@ export const companies: Company[] = [
 ];
 
 export const contacts: Contact[] = [
-  { id: 'cont-1', name: 'Alice Johnson', email: 'alice@innovateinc.com', jobTitle: 'Desarrolladora Principal', companyId: 'comp-1', avatarUrl: 'https://picsum.photos/seed/1/40/40', lastContacted: '2024-05-20T10:00:00Z', city: 'San Francisco', country: 'EE.UU.' },
-  { id: 'cont-2', name: 'Bob Williams', email: 'bob@quantumsol.com', jobTitle: 'Jefe de Proyecto', companyId: 'comp-2', avatarUrl: 'https://picsum.photos/seed/2/40/40', lastContacted: '2024-05-22T14:30:00Z', city: 'Nueva York', country: 'EE.UU.' },
-  { id: 'cont-3', name: 'Charlie Brown', email: 'charlie@synergy.co', jobTitle: 'Analista Financiero', companyId: 'comp-3', avatarUrl: 'https://picsum.photos/seed/3/40/40', lastContacted: '2024-05-18T09:00:00Z', city: 'Londres', country: 'Reino Unido' },
-  { id: 'cont-4', name: 'Diana Prince', email: 'diana@apexlog.com', jobTitle: 'Coordinadora de Logística', companyId: 'comp-4', avatarUrl: 'https://picsum.photos/seed/4/40/40', lastContacted: '2024-05-23T11:00:00Z', city: 'Singapur', country: 'Singapur' },
-  { id: 'cont-5', name: 'Ethan Hunt', email: 'ethan@innovateinc.com', jobTitle: 'Diseñador UX', companyId: 'comp-1', avatarUrl: 'https://picsum.photos/seed/5/40/40', lastContacted: '2024-05-21T16:45:00Z', city: 'San Francisco', country: 'EE.UU.' },
+  { id: 'cont-1', name: 'Alice Johnson', email: 'alice@innovateinc.com', jobTitle: 'Desarrolladora Principal', companyId: 'comp-1', avatarUrl: 'https://picsum.photos/seed/1/40/40', lastContacted: '2024-05-20T10:00:00Z', city: 'San Francisco', country: 'EE.UU.', teamId: 'team-1', createdAt: '2024-05-20T10:00:00Z', updatedAt: '2024-05-20T10:00:00Z' },
+  { id: 'cont-2', name: 'Bob Williams', email: 'bob@quantumsol.com', jobTitle: 'Jefe de Proyecto', companyId: 'comp-2', avatarUrl: 'https://picsum.photos/seed/2/40/40', lastContacted: '2024-05-22T14:30:00Z', city: 'Nueva York', country: 'EE.UU.', teamId: 'team-1', createdAt: '2024-05-22T14:30:00Z', updatedAt: '2024-05-22T14:30:00Z' },
+  { id: 'cont-3', name: 'Charlie Brown', email: 'charlie@synergy.co', jobTitle: 'Analista Financiero', companyId: 'comp-3', avatarUrl: 'https://picsum.photos/seed/3/40/40', lastContacted: '2024-05-18T09:00:00Z', city: 'Londres', country: 'Reino Unido', teamId: 'team-1', createdAt: '2024-05-18T09:00:00Z', updatedAt: '2024-05-18T09:00:00Z' },
+  { id: 'cont-4', name: 'Diana Prince', email: 'diana@apexlog.com', jobTitle: 'Coordinadora de Logística', companyId: 'comp-4', avatarUrl: 'https://picsum.photos/seed/4/40/40', lastContacted: '2024-05-23T11:00:00Z', city: 'Singapur', country: 'Singapur', teamId: 'team-1', createdAt: '2024-05-23T11:00:00Z', updatedAt: '2024-05-23T11:00:00Z' },
+  { id: 'cont-5', name: 'Ethan Hunt', email: 'ethan@innovateinc.com', jobTitle: 'Diseñador UX', companyId: 'comp-1', avatarUrl: 'https://picsum.photos/seed/5/40/40', lastContacted: '2024-05-21T16:45:00Z', city: 'San Francisco', country: 'EE.UU.', teamId: 'team-1', createdAt: '2024-05-21T16:45:00Z', updatedAt: '2024-05-21T16:45:00Z' },
 ];
 
-export const dealStages: DealStage[] = ['Potencial', 'Contactado', 'Propuesta', 'Negociación', 'Ganado', 'Perdido'];
+export const dealStages: DealStage[] = ['potencial', 'contactado', 'propuesta', 'negociacion', 'ganado', 'perdido'];
 
 export const deals: Deal[] = [
-  { id: 'deal-1', title: 'Proyecto de Rediseño de Sitio Web', value: 25000, stage: 'Propuesta', contactIds: ['cont-1', 'cont-5'], companyId: 'comp-1' },
-  { id: 'deal-2', title: 'Consultoría de Gestión Q3', value: 50000, stage: 'Negociación', contactIds: ['cont-2'], companyId: 'comp-2' },
-  { id: 'deal-3', title: 'Auditoría Financiera Anual', value: 15000, stage: 'Ganado', contactIds: ['cont-3'], companyId: 'comp-3' },
-  { id: 'deal-4', title: 'Optimización de Cadena de Suministro', value: 35000, stage: 'Contactado', contactIds: ['cont-4'], companyId: 'comp-4' },
-  { id: 'deal-5', title: 'Nueva UI/UX de App Móvil', value: 42000, stage: 'Potencial', contactIds: ['cont-5'], companyId: 'comp-1' },
-  { id: 'deal-6', title: 'Plataforma de Análisis de Datos', value: 75000, stage: 'Propuesta', contactIds: ['cont-2'], companyId: 'comp-2' },
-  { id: 'deal-7', title: 'Actualización de Flota Logística', value: 120000, stage: 'Perdido', contactIds: ['cont-4'], companyId: 'comp-4' },
+  // This data is now fetched from Firestore. This mock data can be removed or kept for reference.
 ];
 
 export const conversations: Conversation[] = [

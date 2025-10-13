@@ -1,3 +1,5 @@
+import { FieldValue } from "firebase/firestore";
+
 export type Contact = {
   id: string;
   name: string;
@@ -21,20 +23,37 @@ export type Company = {
   industry: string;
 };
 
-export type DealStage = 'Potencial' | 'Contactado' | 'Propuesta' | 'Negociación' | 'Ganado' | 'Perdido';
+export type DealStage = 'potencial' | 'contactado' | 'propuesta' | 'negociacion' | 'ganado' | 'perdido';
 
 export type Deal = {
   id: string;
   title: string;
-  value: number;
+  teamId: string;
   stage: DealStage;
-  contactIds: string[];
-  companyId: string;
+  amount: number;
+  currency: "CLP" | "USD";
+  contact: {
+    id: string;
+    name: string;
+    email?: string;
+  };
+  company?: {
+    id: string;
+    name: string;
+  };
+  lastActivity?: string;
+  nextAction?: string;
+  priority?: "alta" | "media" | "baja";
+  ownerId: string;
+  status: "activo" | "cerrado" | "descartado";
+  createdAt: FieldValue;
+  updatedAt: FieldValue;
 };
+
 
 export type Activity = {
   id: string;
-  type: 'Email' | 'Llamada' | 'Reunión' | 'Nota';
+  type: 'Email' | 'Llamada' | 'Reunión' | 'Nota' | 'stageChange';
   contactId: string;
   dealId?: string;
   timestamp: string;
