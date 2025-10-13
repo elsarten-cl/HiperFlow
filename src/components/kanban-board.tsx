@@ -2,32 +2,79 @@
 
 import { useMemo } from 'react';
 import { collection, query, where } from 'firebase/firestore';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, WithId } from '@/firebase';
 import { type Deal, type DealStage } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { DollarSign, User, MessageSquare, Clock } from 'lucide-react';
+import {
+  DollarSign,
+  User,
+  MessageSquare,
+  Clock,
+  Lightbulb,
+  Phone,
+  FileText,
+  Handshake,
+  Goal,
+  ArchiveX,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { WithId } from '@/firebase';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-const stageColors: Record<DealStage, string> = {
-  potencial: 'bg-chart-1',
-  contactado: 'bg-chart-2',
-  propuesta: 'bg-chart-3',
-  negociacion: 'bg-chart-4',
-  ganado: 'bg-accent',
-  perdido: 'bg-destructive',
-};
-
-const stageNames: Record<DealStage, string> = {
-  potencial: 'Potencial',
-  contactado: 'Contactado',
-  propuesta: 'Propuesta',
-  negociacion: 'Negociación',
-  ganado: 'Ganado',
-  perdido: 'Perdido',
+const stageConfig: Record<
+  DealStage,
+  {
+    icon: React.ElementType;
+    color: string;
+    name: string;
+    tooltip: string;
+    emptyStateText: string;
+  }
+> = {
+  potencial: {
+    icon: Lightbulb,
+    color: 'bg-blue-500',
+    name: 'Potencial',
+    tooltip: 'Clientes o leads que mostraron interés, pero aún no se ha iniciado contacto.',
+    emptyStateText: 'Aquí aparecerán tus posibles clientes. Usa ‘+ Nueva Oportunidad’ para registrar un lead.',
+  },
+  contactado: {
+    icon: Phone,
+    color: 'bg-cyan-500',
+    name: 'Contactado',
+    tooltip: 'Ya hubo contacto por WhatsApp, teléfono o correo. Seguimiento activo.',
+    emptyStateText: 'Cuando hagas tu primer contacto, arrastra la oportunidad aquí.',
+  },
+propuesta: {
+    icon: FileText,
+    color: 'bg-yellow-500',
+    name: 'Propuesta',
+    tooltip: 'Cliente recibió una propuesta o cotización. Esperando respuesta.',
+    emptyStateText: 'Una vez envíes tu propuesta, muévela acá para hacerle seguimiento.',
+  },
+  negociacion: {
+    icon: Handshake,
+    color: 'bg-purple-500',
+    name: 'Negociación',
+    tooltip: 'El cliente está negociando condiciones o precios. Etapa clave para el cierre.',
+    emptyStateText: 'Mantén visibles tus negociaciones para no perder el ritmo de cierre.',
+  },
+  ganado: {
+    icon: Goal,
+    color: 'bg-green-500',
+    name: 'Ganado',
+    tooltip: 'Venta cerrada con éxito. ¡Felicidades! Registra los detalles finales.',
+    emptyStateText: '¡Excelente! Aquí verás tus ventas confirmadas y completadas.',
+  },
+  perdido: {
+    icon: ArchiveX,
+    color: 'bg-red-500',
+    name: 'Perdido',
+    tooltip: 'Venta no concretada. Analiza los motivos para mejorar futuras oportunidades.',
+    emptyStateText: 'No te preocupes, cada oportunidad perdida enseña algo. Regístrala acá.',
+  },
 };
 
 const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
@@ -37,15 +84,17 @@ const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
     : deal.nextAction;
 
   return (
-    <Card className="mb-4 bg-background/50 hover:bg-background transition-colors duration-200 cursor-grab active:cursor-grabbing border" style={{ borderColor: 'rgba(191, 191, 191, 0.2)'}}>
+    <Card className="mb-4 bg-card/80 hover:bg-card transition-colors duration-200 cursor-grab active:cursor-grabbing border" style={{ borderColor: 'hsl(var(--border) / 0.2)'}}>
       <CardHeader className="p-3">
         <CardTitle className="text-base font-medium">{deal.title}</CardTitle>
       </CardHeader>
       <CardContent className="p-3 pt-0 flex flex-col gap-2 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4" />
-          <span>{contactInfo || 'Sin contacto'}</span>
-        </div>
+        {contactInfo && (
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4" />
+            <span>{contactInfo}</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <MessageSquare className="h-4 w-4" />
           <span className="truncate">{deal.lastActivity || 'Sin actividad reciente'}</span>
@@ -67,27 +116,41 @@ const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
 
 const KanbanColumn = ({ stage, deals }: { stage: DealStage; deals: WithId<Deal>[] }) => {
   const totalValue = deals.reduce((sum, deal) => sum + deal.amount, 0);
+  const config = stageConfig[stage];
+  const Icon = config.icon;
 
   return (
     <div className="flex flex-col w-full shrink-0">
-      <div className="flex items-center justify-between p-2 mb-4">
-        <div className="flex items-center gap-2">
-          <div className={cn('h-2.5 w-2.5 rounded-full', stageColors[stage])} />
-          <h2 className="font-semibold font-headline">{stageNames[stage]}</h2>
-          <Badge variant="secondary" className="rounded-full">{deals.length}</Badge>
-        </div>
-        <span className="text-sm font-medium text-muted-foreground">
-          {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', notation: 'compact' }).format(totalValue)}
-        </span>
-      </div>
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center justify-between p-2 mb-4 cursor-help">
+              <div className="flex items-center gap-2">
+                <div className={cn('p-1 rounded-full', config.color)}>
+                  <Icon className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <h2 className="font-semibold font-headline">{config.name}</h2>
+                <Badge variant="secondary" className="rounded-full">{deals.length}</Badge>
+              </div>
+              <span className="text-sm font-medium text-muted-foreground">
+                {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', notation: 'compact' }).format(totalValue)}
+              </span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="max-w-xs">{config.tooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+
       <div className="flex-1 p-2 bg-card/50 rounded-lg min-h-[100px] overflow-y-auto">
         {deals.length > 0 ? (
           deals.map((deal) => (
             <DealCard key={deal.id} deal={deal} />
           ))
         ) : (
-          <div className="text-center text-sm text-muted-foreground py-4">
-            Aún no hay oportunidades en esta etapa
+          <div className="text-center text-sm italic text-muted-foreground p-4">
+            {config.emptyStateText}
           </div>
         )}
       </div>

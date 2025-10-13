@@ -20,10 +20,10 @@ import {
   addDocumentNonBlocking,
   useCollection,
   useMemoFirebase,
+  WithId,
 } from '@/firebase';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import type { Contact, Company, Deal } from '@/lib/types';
-import { WithId } from '@/firebase';
 
 export default function DashboardPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -54,12 +54,17 @@ export default function DashboardPage() {
     }
 
     const dealsCollection = collection(firestore, 'deals');
-    const newDeal = {
-      ...formData,
-      teamId: 'team-1', // Hardcoded for now
+    const newDeal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt'> = {
+      title: formData.title || 'Nueva Oportunidad',
+      teamId: 'team-1',
+      stage: 'potencial',
+      amount: formData.amount || 0,
+      currency: formData.currency || 'CLP',
+      contact: formData.contact,
+      company: formData.company,
+      lastActivity: 'Oportunidad creada',
       ownerId: user.uid,
       status: 'activo',
-      stage: 'potencial',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     };
@@ -79,29 +84,32 @@ export default function DashboardPage() {
         title="Flow de Ventas"
         description="Visualiza y avanza tus oportunidades con claridad."
       >
-        <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-          <SheetTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nueva Oportunidad
-            </Button>
-          </SheetTrigger>
-          <SheetContent className="sm:max-w-lg">
-            <SheetHeader>
-              <SheetTitle>Crear Nueva Oportunidad</SheetTitle>
-            </SheetHeader>
-            <div className="py-4">
-              <DealForm
-                onSave={handleSaveDeal}
-                onCancel={() => setIsSheetOpen(false)}
-                contacts={contacts || []}
-                companies={companies || []}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
+        <Button onClick={() => setIsSheetOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nueva Oportunidad
+        </Button>
       </PageHeader>
+      <p className="text-muted-foreground -mt-4 mb-8 text-sm md:text-base">
+        Cada oportunidad representa un posible negocio. Muévela entre etapas según su avance y mantén el control de tu flujo comercial.
+      </p>
+      
       <KanbanBoard />
+
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>Crear Nueva Oportunidad</SheetTitle>
+          </SheetHeader>
+          <div className="py-4">
+            <DealForm
+              onSave={handleSaveDeal}
+              onCancel={() => setIsSheetOpen(false)}
+              contacts={contacts || []}
+              companies={companies || []}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
     </>
   );
 }
