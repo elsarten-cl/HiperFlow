@@ -1,0 +1,871 @@
+{
+  "entities": {
+    "Team": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Team",
+      "type": "object",
+      "description": "Represents a team within the CRM HiperFlow application. Teams enable multi-tenant data scoping.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the team."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the team."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the team was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the team was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user within the CRM HiperFlow application. Note: Authentication details are handled by Firebase Authentication and are not stored in this entity.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. (Relationship: Team 1:N User).  Specifies the team to which the user belongs."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Display name of the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "email",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Company": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Company",
+      "type": "object",
+      "description": "Represents a company in the CRM HiperFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the company."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. (Relationship: Team 1:N Company). Specifies the team to which the company belongs."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the company."
+        },
+        "website": {
+          "type": "string",
+          "description": "Website URL of the company.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the company was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the company was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "name",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Contact": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Contact",
+      "type": "object",
+      "description": "Represents a contact in the CRM HiperFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the contact."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. (Relationship: Team 1:N Contact). Specifies the team to which the contact belongs."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Reference to Company. (Relationship: Company 1:N Contact).  Specifies the company to which the contact belongs."
+        },
+        "names": {
+          "type": "string",
+          "description": "Full name of the contact."
+        },
+        "emails": {
+          "type": "array",
+          "description": "Array of email addresses for the contact.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "phones": {
+          "type": "array",
+          "description": "Array of phone numbers for the contact.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "socials": {
+          "type": "string",
+          "description": "Social media links for the contact."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the contact was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the contact was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "names",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Pipeline": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Pipeline",
+      "type": "object",
+      "description": "Represents a sales pipeline in the CRM HiperFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the pipeline."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. (Relationship: Team 1:N Pipeline). Specifies the team to which the pipeline belongs."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the pipeline."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the pipeline was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the pipeline was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "name",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Stage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Stage",
+      "type": "object",
+      "description": "Represents a stage in a sales pipeline.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the stage."
+        },
+        "pipelineId": {
+          "type": "string",
+          "description": "Reference to Pipeline. (Relationship: Pipeline 1:N Stage).  Specifies the pipeline to which the stage belongs."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the stage."
+        },
+        "order": {
+          "type": "number",
+          "description": "Order of the stage within the pipeline."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the stage was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the stage was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "pipelineId",
+        "name",
+        "order",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Deal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Deal",
+      "type": "object",
+      "description": "Represents a deal or opportunity in the CRM HiperFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the deal."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. (Relationship: Team 1:N Deal). Specifies the team to which the deal belongs."
+        },
+        "contactId": {
+          "type": "string",
+          "description": "Reference to Contact. (Relationship: Contact 1:N Deal). Specifies the contact associated with the deal."
+        },
+        "stageId": {
+          "type": "string",
+          "description": "Reference to Stage. (Relationship: Stage 1:N Deal).  Specifies the stage to which the deal currently belongs."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the deal."
+        },
+        "value": {
+          "type": "number",
+          "description": "Value of the deal."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the deal was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the deal was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "contactId",
+        "stageId",
+        "name",
+        "value",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Activity": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Activity",
+      "type": "object",
+      "description": "Represents an activity or interaction with a contact in the CRM HiperFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the activity."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. (Relationship: Team 1:N Activity). Specifies the team to which the activity belongs."
+        },
+        "contactId": {
+          "type": "string",
+          "description": "Reference to Contact. (Relationship: Contact 1:N Activity).  Specifies the contact with whom the activity was performed."
+        },
+        "dealId": {
+          "type": "string",
+          "description": "Reference to Deal. (Relationship: Deal 1:N Activity).  Specifies the deal to which the activity is related (optional)."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of activity (e.g., call, email, meeting)."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Notes or description of the activity."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the activity was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the activity was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "contactId",
+        "type",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Message": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Message",
+      "type": "object",
+      "description": "Represents a message within the unified inbox of the CRM HiperFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the message."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. (Relationship: Team 1:N Message). Specifies the team to which the message belongs."
+        },
+        "contactId": {
+          "type": "string",
+          "description": "Reference to Contact. (Relationship: Contact 1:N Message). Specifies the contact associated with the message."
+        },
+        "channelId": {
+          "type": "string",
+          "description": "Reference to Channel. (Relationship: Channel 1:N Message).  Specifies the channel through which the message was sent."
+        },
+        "content": {
+          "type": "string",
+          "description": "Content of the message."
+        },
+        "sentAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the message was sent.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the message was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the message was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "contactId",
+        "channelId",
+        "content",
+        "sentAt",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Channel": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Channel",
+      "type": "object",
+      "description": "Represents a messaging channel (e.g., Meta, WhatsApp) within the CRM HiperFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the channel."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. (Relationship: Team 1:N Channel). Specifies the team to which the channel belongs."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the channel (e.g., Meta, WhatsApp)."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of channel (e.g., social, messaging)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the channel was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the channel was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "name",
+        "type",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Webhook": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Webhook",
+      "type": "object",
+      "description": "Represents a webhook configuration for integrating with external services like Make.com or n8n.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the webhook."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. (Relationship: Team 1:N Webhook). Specifies the team to which the webhook belongs."
+        },
+        "url": {
+          "type": "string",
+          "description": "URL to which the webhook will send data.",
+          "format": "uri"
+        },
+        "events": {
+          "type": "array",
+          "description": "Array of event types that trigger the webhook (e.g., contact.created, deal.updated).",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the webhook was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the webhook was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "url",
+        "events",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Job": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Job",
+      "type": "object",
+      "description": "Represents a background job or task within the CRM HiperFlow application, potentially managed by Cloud Tasks.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the job."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. (Relationship: Team 1:N Job). Specifies the team to which the job belongs."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of job (e.g., token refresh, DLQ retry)."
+        },
+        "status": {
+          "type": "string",
+          "description": "Status of the job (e.g., pending, running, completed, failed)."
+        },
+        "payload": {
+          "type": "string",
+          "description": "Data payload for the job (can be a stringified JSON object)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the job was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the job was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "type",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SocialPost": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SocialPost",
+      "type": "object",
+      "description": "Represents a social media post scheduled or published through the CRM HiperFlow application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the social post."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. (Relationship: Team 1:N SocialPost). Specifies the team to which the social post belongs."
+        },
+        "channelId": {
+          "type": "string",
+          "description": "Reference to Channel. (Relationship: Channel 1:N SocialPost). Specifies the social media channel to which the post will be published."
+        },
+        "content": {
+          "type": "string",
+          "description": "Content of the social media post."
+        },
+        "scheduledAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the post is scheduled to be published.",
+          "format": "date-time"
+        },
+        "publishedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the post was actually published.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the social post was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the social post was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "channelId",
+        "content",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/teams/{teamId}",
+        "definition": {
+          "entityName": "Team",
+          "schema": {
+            "$ref": "#/backend/entities/Team"
+          },
+          "description": "Represents a team within the CRM. The `teamId` parameter is the unique identifier for the team.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Represents a user within a team. Includes `teamId` for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "userId",
+              "description": "Unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/companies/{companyId}",
+        "definition": {
+          "entityName": "Company",
+          "schema": {
+            "$ref": "#/backend/entities/Company"
+          },
+          "description": "Represents a company. Includes `teamId` for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "companyId",
+              "description": "Unique identifier for the company."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/contacts/{contactId}",
+        "definition": {
+          "entityName": "Contact",
+          "schema": {
+            "$ref": "#/backend/entities/Contact"
+          },
+          "description": "Represents a contact. Includes `teamId` for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "contactId",
+              "description": "Unique identifier for the contact."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/pipelines/{pipelineId}",
+        "definition": {
+          "entityName": "Pipeline",
+          "schema": {
+            "$ref": "#/backend/entities/Pipeline"
+          },
+          "description": "Represents a pipeline. Includes `teamId` for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "pipelineId",
+              "description": "Unique identifier for the pipeline."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/pipelines/{pipelineId}/stages/{stageId}",
+        "definition": {
+          "entityName": "Stage",
+          "schema": {
+            "$ref": "#/backend/entities/Stage"
+          },
+          "description": "Represents a stage in a pipeline. Includes `teamId` (denormalized from Pipeline) for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "pipelineId",
+              "description": "Unique identifier for the pipeline."
+            },
+            {
+              "name": "stageId",
+              "description": "Unique identifier for the stage."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/deals/{dealId}",
+        "definition": {
+          "entityName": "Deal",
+          "schema": {
+            "$ref": "#/backend/entities/Deal"
+          },
+          "description": "Represents a deal. Includes `teamId` for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "dealId",
+              "description": "Unique identifier for the deal."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/activities/{activityId}",
+        "definition": {
+          "entityName": "Activity",
+          "schema": {
+            "$ref": "#/backend/entities/Activity"
+          },
+          "description": "Represents an activity. Includes `teamId` for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "activityId",
+              "description": "Unique identifier for the activity."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/messages/{messageId}",
+        "definition": {
+          "entityName": "Message",
+          "schema": {
+            "$ref": "#/backend/entities/Message"
+          },
+          "description": "Represents a message. Includes `teamId` for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "messageId",
+              "description": "Unique identifier for the message."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/channels/{channelId}",
+        "definition": {
+          "entityName": "Channel",
+          "schema": {
+            "$ref": "#/backend/entities/Channel"
+          },
+          "description": "Represents a channel. Includes `teamId` for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "channelId",
+              "description": "Unique identifier for the channel."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/webhooks/{webhookId}",
+        "definition": {
+          "entityName": "Webhook",
+          "schema": {
+            "$ref": "#/backend/entities/Webhook"
+          },
+          "description": "Represents a webhook. Includes `teamId` for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "webhookId",
+              "description": "Unique identifier for the webhook."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/jobs/{jobId}",
+        "definition": {
+          "entityName": "Job",
+          "schema": {
+            "$ref": "#/backend/entities/Job"
+          },
+          "description": "Represents a job. Includes `teamId` for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "jobId",
+              "description": "Unique identifier for the job."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/teams/{teamId}/socialPosts/{socialPostId}",
+        "definition": {
+          "entityName": "SocialPost",
+          "schema": {
+            "$ref": "#/backend/entities/SocialPost"
+          },
+          "description": "Represents a social post. Includes `teamId` for authorization independence.",
+          "params": [
+            {
+              "name": "teamId",
+              "description": "Unique identifier for the team."
+            },
+            {
+              "name": "socialPostId",
+              "description": "Unique identifier for the social post."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to support a multi-tenant CRM application (HiperFlow) with a focus on security, scalability, and ease of debugging. The structure incorporates denormalization to ensure authorization independence, enabling atomic operations and simplifying security rules. It segregates data based on access needs and employs consistent access modeling for predictable authorization. All collections are teamId-scoped to enable multi-tenancy.  Specifically:\n\n1.  **Authorization Independence:** All documents requiring team-based access include the `teamId` field. This allows security rules to validate a user's access based solely on the `teamId` in their authentication token and the document, without needing `get()` calls to parent documents.\n\n2.  **Structural Segregation:** Each top-level collection (e.g., `teams`, `users`, `companies`) contains documents with the same security posture. This simplifies rules since all documents within a collection share the same access requirements.\n\n3.  **Access Modeling:**\n    *   Data is primarily organized around the `teamId`, ensuring that users can only access data within their assigned team.\n    *   Hierarchical paths are used for entities with 1:N relationships, such as `/teams/{teamId}/users/{userId}`.\n\n4.  **QAPs Support:** Segregation by `teamId` ensures secure `list` operations. Rules can easily filter collections based on the requesting user's `teamId`, preventing unauthorized access to data from other teams.\n\n5.  **Invariants:** The structure supports invariants by enforcing the presence of `teamId` across all relevant collections, ensuring data integrity and ownership."
+  }
+}

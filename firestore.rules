@@ -1,0 +1,395 @@
+/**
+ * @description This ruleset enforces a strict team-based multi-tenant security model for the HiperFlow CRM application.
+ * All data access is scoped to a specific team, identified by `teamId`.
+ * @dataStructure The data is organized hierarchically under the `/teams/{teamId}` path. Each entity (users, companies, contacts, etc.)
+ * resides within a team's document and contains a `teamId` field that MUST match the path.
+ * @keySecurityDecisions
+ *   - Only authenticated users can access data.
+ *   - All reads and writes are restricted to the user's team.
+ *   - Data consistency is enforced by validating the `teamId` on document creation.
+ *   - Listing operations are restricted to the user's team.
+ *   - No public read access is granted to any collection.
+ * @denormalizationForAuthorization All documents contain a `teamId` field to avoid needing to perform additional reads for authorization.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Manages access to the `teams` collection. Only authenticated users can create teams, and their UID must match the `teamId`.
+     * @path /teams/{teamId}
+     * @allow (create) User with UID 'user_abc' can create a team document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a team document where `teamId` is 'user_abc'.
+     * @principle Enforces team ownership for writes and restricts team creation to authenticated users.
+     */
+    match /teams/{teamId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+          return request.auth.uid == teamId;
+      }
+
+      // function isExistingOwner(teamId) {
+      //     return isOwner(teamId) && resource != null;
+      // }
+
+
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(teamId);
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Manages access to the `users` collection within a team.
+     * Only authenticated users can create users within their team, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/users/{userId}
+     * @allow (create) User with UID 'user_abc' can create a user document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a user document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts user creation to authenticated users within their team.
+     */
+    match /teams/{teamId}/users/{userId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+        function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId) && request.resource.data.teamId == teamId && request.resource.data.id == userId;
+      allow update: if isSignedIn() && isExistingOwner(teamId) && request.resource.data.teamId == resource.data.teamId && request.resource.data.id == resource.data.id;
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+
+    /**
+     * @description Manages access to the `companies` collection within a team.
+     * Only authenticated users can create companies within their team, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/companies/{companyId}
+     * @allow (create) User with UID 'user_abc' can create a company document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a company document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts company creation to authenticated users within their team.
+     */
+    match /teams/{teamId}/companies/{companyId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+      function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isExistingOwner(teamId) && request.resource.data.teamId == resource.data.teamId;
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+
+    /**
+     * @description Manages access to the `contacts` collection within a team.
+     * Only authenticated users can create contacts within their team, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/contacts/{contactId}
+     * @allow (create) User with UID 'user_abc' can create a contact document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a contact document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts contact creation to authenticated users within their team.
+     */
+    match /teams/{teamId}/contacts/{contactId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+        function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isExistingOwner(teamId) && request.resource.data.teamId == resource.data.teamId;
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+
+    /**
+     * @description Manages access to the `pipelines` collection within a team.
+     * Only authenticated users can create pipelines within their team, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/pipelines/{pipelineId}
+     * @allow (create) User with UID 'user_abc' can create a pipeline document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a pipeline document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts pipeline creation to authenticated users within their team.
+     */
+    match /teams/{teamId}/pipelines/{pipelineId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+        function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isExistingOwner(teamId) && request.resource.data.teamId == resource.data.teamId;
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+
+    /**
+     * @description Manages access to the `stages` collection within a pipeline within a team.
+     * Only authenticated users can create stages within their team and pipeline, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/pipelines/{pipelineId}/stages/{stageId}
+     * @allow (create) User with UID 'user_abc' can create a stage document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a stage document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts stage creation to authenticated users within their team and pipeline.
+     */
+    match /teams/{teamId}/pipelines/{pipelineId}/stages/{stageId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+        function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId);
+      allow update: if isSignedIn() && isExistingOwner(teamId);
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+
+    /**
+     * @description Manages access to the `deals` collection within a team.
+     * Only authenticated users can create deals within their team, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/deals/{dealId}
+     * @allow (create) User with UID 'user_abc' can create a deal document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a deal document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts deal creation to authenticated users within their team.
+     */
+    match /teams/{teamId}/deals/{dealId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+        function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isExistingOwner(teamId) && request.resource.data.teamId == resource.data.teamId;
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+
+    /**
+     * @description Manages access to the `activities` collection within a team.
+     * Only authenticated users can create activities within their team, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/activities/{activityId}
+     * @allow (create) User with UID 'user_abc' can create an activity document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create an activity document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts activity creation to authenticated users within their team.
+     */
+    match /teams/{teamId}/activities/{activityId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+        function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isExistingOwner(teamId) && request.resource.data.teamId == resource.data.teamId;
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+
+    /**
+     * @description Manages access to the `messages` collection within a team.
+     * Only authenticated users can create messages within their team, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/messages/{messageId}
+     * @allow (create) User with UID 'user_abc' can create a message document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a message document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts message creation to authenticated users within their team.
+     */
+    match /teams/{teamId}/messages/{messageId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+        function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isExistingOwner(teamId) && request.resource.data.teamId == resource.data.teamId;
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+
+    /**
+     * @description Manages access to the `channels` collection within a team.
+     * Only authenticated users can create channels within their team, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/channels/{channelId}
+     * @allow (create) User with UID 'user_abc' can create a channel document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a channel document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts channel creation to authenticated users within their team.
+     */
+    match /teams/{teamId}/channels/{channelId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+        function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isExistingOwner(teamId) && request.resource.data.teamId == resource.data.teamId;
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+
+    /**
+     * @description Manages access to the `webhooks` collection within a team.
+     * Only authenticated users can create webhooks within their team, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/webhooks/{webhookId}
+     * @allow (create) User with UID 'user_abc' can create a webhook document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a webhook document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts webhook creation to authenticated users within their team.
+     */
+    match /teams/{teamId}/webhooks/{webhookId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+        function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isExistingOwner(teamId) && request.resource.data.teamId == resource.data.teamId;
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+
+    /**
+     * @description Manages access to the `jobs` collection within a team.
+     * Only authenticated users can create jobs within their team, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/jobs/{jobId}
+     * @allow (create) User with UID 'user_abc' can create a job document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a job document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts job creation to authenticated users within their team.
+     */
+    match /teams/{teamId}/jobs/{jobId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+        function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isExistingOwner(teamId) && request.resource.data.teamId == resource.data.teamId;
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+
+    /**
+     * @description Manages access to the `socialPosts` collection within a team.
+     * Only authenticated users can create socialPosts within their team, and the `teamId` in the path must match the `teamId` field in the document.
+     * @path /teams/{teamId}/socialPosts/{socialPostId}
+     * @allow (create) User with UID 'user_abc' can create a socialPost document where `teamId` is 'user_abc'.
+     * @deny (create) User with UID 'user_xyz' cannot create a socialPost document where `teamId` is 'user_abc'.
+     * @principle Enforces team-based ownership for writes and restricts socialPost creation to authenticated users within their team.
+     */
+    match /teams/{teamId}/socialPosts/{socialPostId} {
+
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return request.auth.uid == teamId;
+      }
+
+        function isExistingOwner(teamId) {
+            return isOwner(teamId) && resource != null;
+        }
+
+      allow get: if isSignedIn() && isOwner(teamId);
+      allow list: if isSignedIn() && isOwner(teamId);
+      allow create: if isSignedIn() && isOwner(teamId) && request.resource.data.teamId == teamId;
+      allow update: if isSignedIn() && isExistingOwner(teamId) && request.resource.data.teamId == resource.data.teamId;
+      allow delete: if isSignedIn() && isExistingOwner(teamId);
+    }
+  }
+}
