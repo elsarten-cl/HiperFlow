@@ -1,3 +1,52 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "avatar-1",
+      "description": "User avatar 1",
+      "imageUrl": "https://picsum.photos/seed/1/40/40",
+      "imageHint": "person face"
+    },
+    {
+      "id": "avatar-2",
+      "description": "User avatar 2",
+      "imageUrl": "https://picsum.photos/seed/2/40/40",
+      "imageHint": "person face"
+    },
+    {
+      "id": "avatar-3",
+      "description": "User avatar 3",
+      "imageUrl": "https://picsum.photos/seed/3/40/40",
+      "imageHint": "person face"
+    },
+    {
+      "id": "avatar-4",
+      "description": "User avatar 4",
+      "imageUrl": "https://picsum.photos/seed/4/40/40",
+      "imageHint": "person face"
+    },
+    {
+      "id": "avatar-5",
+      "description": "User avatar 5",
+      "imageUrl": "https://picsum.photos/seed/5/40/40",
+      "imageHint": "person face"
+    },
+    {
+      "id": "avatar-6",
+      "description": "User avatar 6",
+      "imageUrl": "https://picsum.photos/seed/6/40/40",
+      "imageHint": "person face"
+    },
+    {
+      "id": "avatar-7",
+      "description": "User avatar 7",
+      "imageUrl": "https://picsum.photos/seed/7/40/40",
+      "imageHint": "person face"
+    },
+    {
+      "id": "avatar-8",
+      "description": "User avatar 8",
+      "imageUrl": "https://picsum.photos/seed/8/40/40",
+      "imageHint": "person face"
+    }
+  ]
 }

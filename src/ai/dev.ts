@@ -1,1 +1,7 @@
-// Flows will be imported for their side effects in this file.
+'use server';
+
+import { config } from 'dotenv';
+config();
+
+import '@/ai/flows/generate-social-media-post.ts';
+import '@/ai/flows/enrich-contact-data.ts';
