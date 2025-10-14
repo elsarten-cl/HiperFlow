@@ -62,7 +62,13 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 const companySchema = z.object({
   name: z.string().min(1, 'El nombre es requerido.'),
   industry: z.string().optional(),
-  domain: z.string().url('Debe ser una URL válida (ej: https://dominio.com)').optional(),
+  domain: z.string().refine((val) => {
+    if (!val) return true; // Optional field
+    // Simple regex to check for something that looks like a domain.
+    return /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(val);
+  }, {
+    message: "Debe ser un dominio válido (ej: dominio.com)",
+  }).optional(),
 });
 
 type CompanyFormData = z.infer<typeof companySchema>;
@@ -85,9 +91,17 @@ const CompanyForm = ({
     },
   });
 
+  const handleSubmit = (data: CompanyFormData) => {
+    let domain = data.domain;
+    if (domain && !/^(https?:\/\/)/.test(domain)) {
+      domain = `https://${domain}`;
+    }
+    onSave({ ...data, domain });
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSave)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="name"
@@ -121,7 +135,7 @@ const CompanyForm = ({
             <FormItem>
               <FormLabel>Sitio Web (Dominio)</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="https://innovateinc.com" />
+                <Input {...field} placeholder="innovateinc.com" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -214,6 +228,16 @@ export default function CompaniesPage() {
     setEditingCompany(undefined);
   };
 
+  const renderDomainLink = (domain?: string) => {
+    if (!domain) return null;
+    const url = domain.startsWith('http') ? domain : `https://${domain}`;
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+        {domain.replace(/^https?:\/\//, '')}
+      </a>
+    );
+  }
+
   return (
     <>
       <PageHeader
@@ -283,9 +307,7 @@ export default function CompaniesPage() {
                       {company.industry && <Badge variant="outline">{company.industry}</Badge>}
                     </TableCell>
                     <TableCell>
-                      <a href={company.domain} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                        {company.domain}
-                      </a>
+                      {renderDomainLink(company.domain)}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -312,3 +334,5 @@ export default function CompaniesPage() {
     </>
   );
 }
+
+    
