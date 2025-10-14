@@ -1,3 +1,5 @@
+'use client';
+
 import { PageHeader } from '@/components/page-header';
 import {
   Card,
@@ -15,20 +17,56 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { activities, contacts, deals } from '@/lib/data';
-import { Activity } from '@/lib/types';
+import type { Activity, Contact, Deal } from '@/lib/types';
 import { Mail, Phone, StickyNote, Video } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase, WithId } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
-const activityIcons: Record<Activity['type'], React.ElementType> = {
+const activityIcons: Record<string, React.ElementType> = {
   Email: Mail,
   Llamada: Phone,
   Reunión: Video,
   Nota: StickyNote,
+  stageChange: StickyNote,
 };
 
 export default function ActivitiesPage() {
-  const contactMap = new Map(contacts.map((c) => [c.id, c.name]));
-  const dealMap = new Map(deals.map((d) => [d.id, d.title]));
+  const firestore = useFirestore();
+
+  const activitiesRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'activities') : null),
+    [firestore]
+  );
+  const { data: activities, isLoading: isLoadingActivities } = useCollection<Activity>(activitiesRef);
+
+  const contactsRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'contacts') : null),
+    [firestore]
+  );
+  const { data: contacts, isLoading: isLoadingContacts } = useCollection<WithId<Contact>>(contactsRef);
+
+  const dealsRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'deals') : null),
+    [firestore]
+  );
+  const { data: deals, isLoading: isLoadingDeals } = useCollection<WithId<Deal>>(dealsRef);
+
+
+  const contactMap = new Map(contacts?.map((c) => [c.id, c.name]));
+  const dealMap = new Map(deals?.map((d) => [d.id, d.title]));
+
+  const getTimestamp = (activity: WithId<Activity>) => {
+    if (!activity.timestamp) return '';
+    if (typeof activity.timestamp === 'string') {
+      return new Date(activity.timestamp).toLocaleDateString();
+    }
+    // Handle Firestore Timestamp object
+    if ('seconds' in activity.timestamp && typeof activity.timestamp.seconds === 'number') {
+      return new Date(activity.timestamp.seconds * 1000).toLocaleDateString();
+    }
+    return '';
+  }
+
 
   return (
     <>
@@ -55,8 +93,13 @@ export default function ActivitiesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {activities.map((activity) => {
-                const Icon = activityIcons[activity.type];
+              {isLoadingActivities || isLoadingContacts || isLoadingDeals ? (
+                 <TableRow>
+                    <TableCell colSpan={5} className="text-center">Cargando actividades...</TableCell>
+                 </TableRow>
+              ) : (
+                activities && activities.map((activity) => {
+                const Icon = activityIcons[activity.type] || StickyNote;
                 return (
                   <TableRow key={activity.id}>
                     <TableCell>
@@ -75,11 +118,11 @@ export default function ActivitiesPage() {
                       <span className="truncate block max-w-xs">{activity.notes}</span>
                     </TableCell>
                     <TableCell>
-                      {new Date(activity.timestamp).toLocaleDateString()}
+                      {getTimestamp(activity)}
                     </TableCell>
                   </TableRow>
                 );
-              })}
+              }))}
             </TableBody>
           </Table>
         </CardContent>
