@@ -1,12 +1,29 @@
 'use client';
 
-import { useMemo } from 'react';
-import { collection, query, where } from 'firebase/firestore';
-import { useCollection, useFirestore, useMemoFirebase, WithId } from '@/firebase';
+import { useMemo, useState } from 'react';
+import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
+import {
+  useCollection,
+  useFirestore,
+  useMemoFirebase,
+  WithId,
+} from '@/firebase';
 import { type Deal, type DealStage } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { SortableContext, useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   DollarSign,
   User,
@@ -21,7 +38,12 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const stageConfig: Record<
   DealStage,
@@ -37,71 +59,119 @@ const stageConfig: Record<
     icon: Lightbulb,
     color: 'bg-blue-500',
     name: 'Potencial',
-    tooltip: 'Clientes o leads que mostraron interés, pero aún no se ha iniciado contacto.',
-    emptyStateText: 'Aquí aparecerán tus posibles clientes. Usa ‘+ Nueva Oportunidad’ para registrar un lead.',
+    tooltip:
+      'Clientes o leads que mostraron interés, pero aún no se ha iniciado contacto.',
+    emptyStateText:
+      'Aquí aparecerán tus posibles clientes. Usa ‘+ Nueva Oportunidad’ para registrar un lead.',
   },
   contactado: {
     icon: Phone,
     color: 'bg-cyan-500',
     name: 'Contactado',
-    tooltip: 'Ya hubo contacto por WhatsApp, teléfono o correo. Seguimiento activo.',
-    emptyStateText: 'Cuando hagas tu primer contacto, arrastra la oportunidad aquí.',
+    tooltip:
+      'Ya hubo contacto por WhatsApp, teléfono o correo. Seguimiento activo.',
+    emptyStateText:
+      'Cuando hagas tu primer contacto, arrastra la oportunidad aquí.',
   },
-propuesta: {
+  propuesta: {
     icon: FileText,
     color: 'bg-yellow-500',
     name: 'Propuesta',
     tooltip: 'Cliente recibió una propuesta o cotización. Esperando respuesta.',
-    emptyStateText: 'Una vez envíes tu propuesta, muévela acá para hacerle seguimiento.',
+    emptyStateText:
+      'Una vez envíes tu propuesta, muévela acá para hacerle seguimiento.',
   },
   negociacion: {
     icon: Handshake,
     color: 'bg-purple-500',
     name: 'Negociación',
-    tooltip: 'El cliente está negociando condiciones o precios. Etapa clave para el cierre.',
-    emptyStateText: 'Mantén visibles tus negociaciones para no perder el ritmo de cierre.',
+    tooltip:
+      'El cliente está negociando condiciones o precios. Etapa clave para el cierre.',
+    emptyStateText:
+      'Mantén visibles tus negociaciones para no perder el ritmo de cierre.',
   },
   ganado: {
     icon: Goal,
     color: 'bg-green-500',
     name: 'Ganado',
     tooltip: 'Venta cerrada con éxito. ¡Felicidades! Registra los detalles finales.',
-    emptyStateText: '¡Excelente! Aquí verás tus ventas confirmadas y completadas.',
+    emptyStateText:
+      '¡Excelente! Aquí verás tus ventas confirmadas y completadas.',
   },
   perdido: {
     icon: ArchiveX,
     color: 'bg-red-500',
     name: 'Perdido',
-    tooltip: 'Venta no concretada. Analiza los motivos para mejorar futuras oportunidades.',
-    emptyStateText: 'No te preocupes, cada oportunidad perdida enseña algo. Regístrala acá.',
+    tooltip:
+      'Venta no concretada. Analiza los motivos para mejorar futuras oportunidades.',
+    emptyStateText:
+      'No te preocupes, cada oportunidad perdida enseña algo. Regístrala acá.',
   },
 };
 
 const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
-  const contactInfo = [deal.contact?.name, deal.company?.name].filter(Boolean).join(' · ');
-  const nextActionDate = deal.nextAction && !isNaN(new Date(deal.nextAction).getTime())
-    ? format(new Date(deal.nextAction), 'dd MMM', { locale: es })
-    : deal.nextAction;
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: deal.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const contactInfo =
+    [deal.contact?.name, deal.company?.name].filter(Boolean).join(' · ') || 'Sin contacto';
+  const nextActionDate =
+    deal.nextAction && !isNaN(new Date(deal.nextAction).getTime())
+      ? format(new Date(deal.nextAction), 'dd MMM', { locale: es })
+      : deal.nextAction;
+
+  if (isDragging) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="mb-4 h-[180px] rounded-lg border-2 border-dashed bg-muted"
+      />
+    );
+  }
 
   return (
-    <Card className="mb-4 bg-card/80 hover:bg-card transition-colors duration-200 cursor-grab active:cursor-grabbing border" style={{ borderColor: 'hsl(var(--border) / 0.2)'}}>
+    <Card
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="mb-4 touch-none bg-card/80 hover:bg-card transition-colors duration-200 cursor-grab active:cursor-grabbing border"
+      style={{ borderColor: 'hsl(var(--border) / 0.2)' }}
+    >
       <CardHeader className="p-3">
         <CardTitle className="text-base font-medium">{deal.title}</CardTitle>
       </CardHeader>
       <CardContent className="p-3 pt-0 flex flex-col gap-2 text-sm text-muted-foreground">
-        {contactInfo && (
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            <span>{contactInfo}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4" />
+          <span>{contactInfo}</span>
+        </div>
         <div className="flex items-center gap-2">
           <MessageSquare className="h-4 w-4" />
-          <span className="truncate">{deal.lastActivity || 'Sin actividad reciente'}</span>
+          <span className="truncate">
+            {deal.lastActivity || 'Sin actividad reciente'}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <DollarSign className="h-4 w-4" />
-          <span>{new Intl.NumberFormat('es-CL', { style: 'currency', currency: deal.currency || 'CLP' }).format(deal.amount)}</span>
+          <span>
+            {new Intl.NumberFormat('es-CL', {
+              style: 'currency',
+              currency: deal.currency || 'CLP',
+            }).format(deal.amount)}
+          </span>
         </div>
         {deal.nextAction && (
           <div className="flex items-center gap-2">
@@ -114,13 +184,28 @@ const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
   );
 };
 
-const KanbanColumn = ({ stage, deals }: { stage: DealStage; deals: WithId<Deal>[] }) => {
+const KanbanColumn = ({
+  stage,
+  deals,
+}: {
+  stage: DealStage;
+  deals: WithId<Deal>[];
+}) => {
   const totalValue = deals.reduce((sum, deal) => sum + deal.amount, 0);
   const config = stageConfig[stage];
   const Icon = config.icon;
+  const dealsIds = useMemo(() => deals.map((d) => d.id), [deals]);
+
+  const { setNodeRef } = useSortable({
+    id: stage,
+    data: {
+      type: 'Column',
+      stage: stage,
+    },
+  });
 
   return (
-    <div className="flex flex-col w-full shrink-0">
+    <div ref={setNodeRef} className="flex flex-col w-full shrink-0">
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -130,10 +215,16 @@ const KanbanColumn = ({ stage, deals }: { stage: DealStage; deals: WithId<Deal>[
                   <Icon className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <h2 className="font-semibold font-headline">{config.name}</h2>
-                <Badge variant="secondary" className="rounded-full">{deals.length}</Badge>
+                <Badge variant="secondary" className="rounded-full">
+                  {deals.length}
+                </Badge>
               </div>
               <span className="text-sm font-medium text-muted-foreground">
-                {new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', notation: 'compact' }).format(totalValue)}
+                {new Intl.NumberFormat('es-CL', {
+                  style: 'currency',
+                  currency: 'CLP',
+                  notation: 'compact',
+                }).format(totalValue)}
               </span>
             </div>
           </TooltipTrigger>
@@ -144,42 +235,124 @@ const KanbanColumn = ({ stage, deals }: { stage: DealStage; deals: WithId<Deal>[
       </TooltipProvider>
 
       <div className="flex-1 p-2 bg-card/50 rounded-lg min-h-[100px] overflow-y-auto">
-        {deals.length > 0 ? (
-          deals.map((deal) => (
-            <DealCard key={deal.id} deal={deal} />
-          ))
-        ) : (
-          <div className="text-center text-sm italic text-muted-foreground p-4">
-            {config.emptyStateText}
-          </div>
-        )}
+        <SortableContext items={dealsIds}>
+          {deals.length > 0 ? (
+            deals.map((deal) => <DealCard key={deal.id} deal={deal} />)
+          ) : (
+            <div className="text-center text-sm italic text-muted-foreground p-4">
+              {config.emptyStateText}
+            </div>
+          )}
+        </SortableContext>
       </div>
     </div>
   );
 };
 
-const dealStages: DealStage[] = ['potencial', 'contactado', 'propuesta', 'negociacion', 'ganado', 'perdido'];
+const dealStages: DealStage[] = [
+  'potencial',
+  'contactado',
+  'propuesta',
+  'negociacion',
+  'ganado',
+  'perdido',
+];
 
 export const KanbanBoard = () => {
   const firestore = useFirestore();
-  const teamId = 'team-1'; // Hardcoded for now
+  const teamId = 'team-1';
 
   const dealsRef = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'deals'), where('teamId', '==', teamId)) : null),
+    () =>
+      firestore
+        ? query(collection(firestore, 'deals'), where('teamId', '==', teamId))
+        : null,
     [firestore, teamId]
   );
   const { data: deals, isLoading } = useCollection<Deal>(dealsRef);
+  const [activeDeal, setActiveDeal] = useState<WithId<Deal> | null>(null);
+
+  const dealsByStage = useMemo(() => {
+    const grouped: Record<DealStage, WithId<Deal>[]> = {
+      potencial: [],
+      contactado: [],
+      propuesta: [],
+      negociacion: [],
+      ganado: [],
+      perdido: [],
+    };
+    deals?.forEach((deal) => {
+      if (deal.stage && grouped[deal.stage]) {
+        grouped[deal.stage].push(deal);
+      }
+    });
+    return grouped;
+  }, [deals]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 3,
+      },
+    })
+  );
+
+  const handleDragStart = (event: DragStartEvent) => {
+    if (event.active.data.current?.type === 'Deal') {
+      setActiveDeal(event.active.data.current.deal);
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveDeal(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+  };
+
+  const handleDragOver = (event: DragOverEvent) => {
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+
+    if (activeId === overId) return;
+
+    const isActiveADeal = active.data.current?.type === 'Deal';
+    const isOverAColumn = over.data.current?.type === 'Column';
+
+    if (isActiveADeal && isOverAColumn && firestore) {
+      const dealId = active.id as string;
+      const newStage = over.data.current?.stage as DealStage;
+
+      const dealRef = doc(firestore, 'deals', dealId);
+      updateDoc(dealRef, { stage: newStage });
+    }
+  };
 
   if (isLoading) {
     return <div className="text-center py-10">Cargando oportunidades...</div>;
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 items-start">
-      {dealStages.map((stage) => {
-        const stageDeals = deals?.filter((deal) => deal.stage === stage) || [];
-        return <KanbanColumn key={stage} stage={stage} deals={stageDeals} />;
-      })}
-    </div>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 items-start">
+        {dealStages.map((stage) => (
+          <KanbanColumn
+            key={stage}
+            stage={stage}
+            deals={dealsByStage[stage] || []}
+          />
+        ))}
+      </div>
+      <DragOverlay>
+        {activeDeal ? <DealCard deal={activeDeal} /> : null}
+      </DragOverlay>
+    </DndContext>
   );
 };
