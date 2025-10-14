@@ -1,12 +1,8 @@
 import { type Company, type Contact, type Deal, type DealStage, type Conversation, type Activity } from '@/lib/types';
-import { serverTimestamp } from 'firebase/firestore';
 
-export const companies: Company[] = [
-  { id: 'comp-1', name: 'Innovate Inc.', domain: 'innovateinc.com', industry: 'Tecnología' },
-  { id: 'comp-2', name: 'Quantum Solutions', domain: 'quantumsol.com', industry: 'Consultoría' },
-  { id: 'comp-3', name: 'Synergy Corp', domain: 'synergy.co', industry: 'Finanzas' },
-  { id: 'comp-4', name: 'Apex Logistics', domain: 'apexlog.com', industry: 'Transporte' },
-];
+// Mock data is no longer the primary source for companies.
+// This can be removed or kept for reference/testing.
+export const companies: Company[] = [];
 
 export const contacts: Contact[] = [
   { id: 'cont-1', name: 'Alice Johnson', email: 'alice@innovateinc.com', jobTitle: 'Desarrolladora Principal', companyId: 'comp-1', avatarUrl: 'https://picsum.photos/seed/1/40/40', lastContacted: '2024-05-20T10:00:00Z', city: 'San Francisco', country: 'EE.UU.', teamId: 'team-1', createdAt: '2024-05-20T10:00:00Z', updatedAt: '2024-05-20T10:00:00Z' },

@@ -13,8 +13,8 @@ export type Contact = {
   city?: string;
   country?: string;
   teamId: string;
-  createdAt: string | Timestamp;
-  updatedAt: string | Timestamp;
+  createdAt: string | Timestamp | FieldValue;
+  updatedAt: string | Timestamp | FieldValue;
   source?: string;
   mainInterest?: string;
   interestLevel?: 'bajo' | 'medio' | 'alto';
@@ -25,8 +25,11 @@ export type Contact = {
 export type Company = {
   id: string;
   name: string;
-  domain: string;
-  industry: string;
+  domain?: string;
+  industry?: string;
+  teamId: string;
+  createdAt: FieldValue;
+  updatedAt: FieldValue;
 };
 
 export type DealStage = 'potencial' | 'contactado' | 'propuesta' | 'negociacion' | 'ganado' | 'perdido';
