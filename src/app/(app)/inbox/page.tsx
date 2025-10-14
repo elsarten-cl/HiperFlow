@@ -31,7 +31,7 @@ const ConversationList = ({
           key={contact.id}
           onClick={() => onSelectConversation(contact.id)}
           className={cn(
-            'flex items-start gap-4 rounded-lg p-3 text-left transition-colors hover:bg-muted/50',
+            'flex items-start gap-4 rounded-lg p-3 text-left transition-colors hover:bg-muted/50 w-full',
             selectedContactId === contact.id && 'bg-muted'
           )}
         >
@@ -39,13 +39,13 @@ const ConversationList = ({
             <AvatarImage src={contact.avatarUrl} alt={contact.name} />
             <AvatarFallback><UserCircle /></AvatarFallback>
           </Avatar>
-          <div className="flex-1">
-            <p className="font-semibold">{contact.name}</p>
+          <div className="flex-1 overflow-hidden">
+            <p className="font-semibold truncate">{contact.name}</p>
             <p className="text-sm text-muted-foreground truncate">
               {lastMessage.content}
             </p>
           </div>
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground ml-auto">
             {new Date(lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
         </button>
