@@ -15,8 +15,6 @@ import { cn } from '@/lib/utils';
 import {
   DndContext,
   DragEndEvent,
-  DragOverEvent,
-  DragOverlay,
   DragStartEvent,
   PointerSensor,
   useSensor,
@@ -117,7 +115,7 @@ const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: deal.id });
+  } = useSortable({ id: deal.id, data: { type: 'Deal', deal } });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -306,11 +304,6 @@ export const KanbanBoard = () => {
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveDeal(null);
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
     if (!over) return;
 
     const activeId = active.id;
@@ -319,14 +312,27 @@ export const KanbanBoard = () => {
     if (activeId === overId) return;
 
     const isActiveADeal = active.data.current?.type === 'Deal';
+    if (!isActiveADeal) return;
+
+    const dealToMove = active.data.current?.deal as WithId<Deal>;
+    
+    let newStage: DealStage | undefined;
+    
     const isOverAColumn = over.data.current?.type === 'Column';
+    if (isOverAColumn) {
+        newStage = over.id as DealStage;
+    }
 
-    if (isActiveADeal && isOverAColumn && firestore) {
-      const dealId = active.id as string;
-      const newStage = over.data.current?.stage as DealStage;
+    const isOverADeal = over.data.current?.type === 'Deal';
+    if (isOverADeal) {
+        const overDeal = over.data.current?.deal as WithId<Deal>;
+        newStage = overDeal.stage;
+    }
 
-      const dealRef = doc(firestore, 'deals', dealId);
-      updateDoc(dealRef, { stage: newStage });
+
+    if (newStage && newStage !== dealToMove.stage && firestore) {
+        const dealRef = doc(firestore, 'deals', dealToMove.id);
+        updateDoc(dealRef, { stage: newStage });
     }
   };
 
@@ -339,16 +345,17 @@ export const KanbanBoard = () => {
       sensors={sensors}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onDragOver={handleDragOver}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 items-start">
-        {dealStages.map((stage) => (
-          <KanbanColumn
-            key={stage}
-            stage={stage}
-            deals={dealsByStage[stage] || []}
-          />
-        ))}
+        <SortableContext items={dealStages}>
+          {dealStages.map((stage) => (
+            <KanbanColumn
+              key={stage}
+              stage={stage}
+              deals={dealsByStage[stage] || []}
+            />
+          ))}
+        </SortableContext>
       </div>
       <DragOverlay>
         {activeDeal ? <DealCard deal={activeDeal} /> : null}
