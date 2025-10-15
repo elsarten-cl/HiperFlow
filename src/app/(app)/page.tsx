@@ -85,7 +85,7 @@ export default function DashboardPage() {
       >
         <Button onClick={() => setIsSheetOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          nuevo flow
+          NuevoFlow
         </Button>
       </PageHeader>
       <p className="text-muted-foreground -mt-4 mb-8 text-sm md:text-base">
