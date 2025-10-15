@@ -57,14 +57,12 @@ const CustomerDetailPanel = ({
   contact,
   company,
   deals,
-  activities,
   onClose,
   onOpenNewDeal,
 }: {
   contact: WithId<Contact>;
   company: WithId<Company> | undefined;
   deals: WithId<Deal>[];
-  activities: any[]; // Replace with Activity type
   onClose: () => void;
   onOpenNewDeal: (contact: WithId<Contact>, company?: WithId<Company>) => void;
 }) => {
@@ -148,7 +146,6 @@ const CustomerDetailPanel = ({
 
                 <Separator />
 
-                {/* Notas rápidas y próximas acciones */}
                  <div className="my-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <h3 className="text-lg font-semibold font-headline mb-4 flex items-center gap-2">
@@ -177,7 +174,8 @@ const CustomerDetailPanel = ({
 export default function CustomersPage() {
   const [selectedContact, setSelectedContact] = useState<WithId<Contact> | null>(null);
   const [isDealSheetOpen, setIsDealSheetOpen] = useState(false);
-  const [dealInitialData, setDealInitialData] = useState<{contact: WithId<Contact>, company?: WithId<Company>}> | null>(null);
+  const [dealContact, setDealContact] = useState<WithId<Contact> | null>(null);
+  const [dealCompany, setDealCompany] = useState<WithId<Company> | undefined>(undefined);
 
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -222,7 +220,8 @@ export default function CustomersPage() {
   };
   
   const handleOpenNewDeal = (contact: WithId<Contact>, company?: WithId<Company>) => {
-    setDealInitialData({ contact, company });
+    setDealContact(contact);
+    setDealCompany(company);
     setIsDealSheetOpen(true);
   };
   
@@ -252,18 +251,15 @@ export default function CustomersPage() {
       if (contact.id.includes('2')) return 'en seguimiento';
       return 'nuevo';
   }
-
-  const getLastDealForContact = (contactId: string): WithId<Deal> | undefined => {
-      const deals = dealsByContact[contactId];
-      if(!deals || deals.length === 0) return undefined;
-      // This is a simplification. Real logic should sort by date.
-      return deals[deals.length - 1];
-  }
   
   const getStageDisplay = (contactId: string) => {
-      const lastDeal = getLastDealForContact(contactId);
-      if(!lastDeal) return <span className="text-muted-foreground">-</span>;
+      const deals = dealsByContact[contactId] || [];
+      if (deals.length === 0) return <span className="text-muted-foreground">-</span>;
       
+      // A more robust implementation would sort deals by date
+      const lastDeal = deals[deals.length - 1];
+      if (!lastDeal) return <span className="text-muted-foreground">-</span>;
+
       const config = stageConfig[lastDeal.stage];
       if(!config) return <span className="text-muted-foreground">{lastDeal.stage}</span>;
 
@@ -361,7 +357,9 @@ export default function CustomersPage() {
                         <TableCell>{companyName}</TableCell>
                         <TableCell>{getStageDisplay(contact.id)}</TableCell>
                         <TableCell>
-                            <Badge className={cn("text-xs", statusConfig?.color)} variant="outline">{statusConfig?.name || 'Desconocido'}</Badge>
+                            {statusConfig ? (
+                               <Badge className={cn("text-xs", statusConfig.color)} variant="outline">{statusConfig.name}</Badge>
+                            ): <Badge variant="outline">Desconocido</Badge>}
                         </TableCell>
                       </TableRow>
                     )
@@ -379,7 +377,6 @@ export default function CustomersPage() {
                 contact={selectedContact}
                 company={companies?.find(c => c.id === selectedContact.companyId)}
                 deals={dealsByContact[selectedContact.id] || []}
-                activities={[]} // Placeholder
                 onClose={() => setSelectedContact(null)}
                 onOpenNewDeal={handleOpenNewDeal}
             />
@@ -391,7 +388,7 @@ export default function CustomersPage() {
             <SheetHeader>
                 <SheetTitle>Crear Nueva Oportunidad</SheetTitle>
                 <SheetDescription>
-                    Inicia un nuevo negocio para {dealInitialData?.contact.name}.
+                    Inicia un nuevo negocio para {dealContact?.name}.
                 </SheetDescription>
             </SheetHeader>
             <div className="py-4">
@@ -401,8 +398,8 @@ export default function CustomersPage() {
                 contacts={contacts || []}
                 companies={companies || []}
                 deal={{
-                    contact: dealInitialData?.contact ? { id: dealInitialData.contact.id, name: dealInitialData.contact.name, email: dealInitialData.contact.email } : undefined,
-                    company: dealInitialData?.company ? { id: dealInitialData.company.id, name: dealInitialData.company.name } : undefined,
+                    contact: dealContact ? { id: dealContact.id, name: dealContact.name, email: dealContact.email } : undefined,
+                    company: dealCompany ? { id: dealCompany.id, name: dealCompany.name } : undefined,
                 }}
                 />
             </div>
