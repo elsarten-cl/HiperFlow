@@ -278,8 +278,8 @@ export default function CustomersPage() {
   return (
     <div className="h-full flex flex-col">
       <PageHeader
-        title="Clientes & Empresas"
-        description="Centraliza la información de tus clientes y empresas en un solo lugar, con historial, contexto y acciones conectadas."
+        title="Clientes"
+        description="Centraliza la información de tus clientes en un solo lugar, con historial, contexto y acciones conectadas."
       >
         <Button>
             <Plus className="mr-2 h-4 w-4" />
@@ -287,7 +287,7 @@ export default function CustomersPage() {
         </Button>
       </PageHeader>
        <p className="text-muted-foreground -mt-4 mb-8 text-sm md:text-base">
-        Cada cliente es una historia y cada empresa una oportunidad. Mantén todos sus datos, interacciones y oportunidades sincronizadas automáticamente con tu SaleFlow.
+        Cada cliente es una historia. Mantén todos sus datos, interacciones y oportunidades sincronizadas automáticamente con tu SaleFlow.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-8 flex-1">
