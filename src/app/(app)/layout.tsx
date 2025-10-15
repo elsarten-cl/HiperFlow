@@ -4,7 +4,6 @@ import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Briefcase,
   Users,
   LayoutGrid,
   Mail,
@@ -65,8 +64,7 @@ const HiperFlowLogo = () => (
 
 const navItems = [
   { href: '/', label: 'SaleFlow', icon: LayoutGrid },
-  { href: '/contacts', label: 'Contactos', icon: Users },
-  { href: '/companies', label: 'Empresas', icon: Briefcase },
+  { href: '/customers', label: 'Clientes & Empresas', icon: Users },
   { href: '/activities', label: 'Actividades', icon: History },
   { href: '/inbox', label: 'Inbox', icon: Mail },
   { href: '/social', label: 'RRSS', icon: PenSquare },
@@ -101,7 +99,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen w-full flex-col">
        <FirebaseErrorListener />
-      <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-10">
         <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
           <Link
             href="/"
@@ -116,7 +114,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               href={href}
               className={cn(
                 'transition-colors hover:text-foreground',
-                pathname === href
+                pathname.startsWith(href) && href !== '/' || pathname === href
                   ? 'text-foreground'
                   : 'text-muted-foreground'
               )}
@@ -151,7 +149,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   href={href}
                   className={cn(
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary',
-                    pathname === href && 'text-primary bg-muted'
+                    pathname.startsWith(href) && href !== '/' || pathname === href ? 'text-primary bg-muted' : ''
                   )}
                 >
                   <Icon className="h-5 w-5" />

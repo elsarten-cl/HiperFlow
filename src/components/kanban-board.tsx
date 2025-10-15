@@ -8,7 +8,6 @@ import {
   useUser,
   useMemoFirebase,
   WithId,
-  addDocumentNonBlocking,
 } from '@/firebase';
 import { type Deal, type DealStage } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,7 +26,6 @@ import { SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
   DollarSign,
-  User,
   MessageSquare,
   Clock,
   Lightbulb,
@@ -112,21 +110,23 @@ const stageConfig: Record<
 };
 
 const getTimestampAsDate = (timestamp: any): Date | null => {
-  if (!timestamp) return null;
-  if (timestamp instanceof Date) return timestamp;
-  if (typeof timestamp === 'string') {
-    const d = new Date(timestamp);
-    return isValid(d) ? d : null;
-  }
-  if (timestamp && typeof timestamp.seconds === 'number' && typeof timestamp.nanoseconds === 'number') {
-    const d = new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000);
-    return isValid(d) ? d : null;
-  }
-   if (timestamp && typeof timestamp.toDate === 'function') {
-    const d = timestamp.toDate();
-    return isValid(d) ? d : null;
-  }
-  return null;
+    if (!timestamp) return null;
+    if (timestamp instanceof Date) return timestamp;
+    if (typeof timestamp === 'string') {
+        const d = new Date(timestamp);
+        return isValid(d) ? d : null;
+    }
+    if (timestamp && typeof timestamp.seconds === 'number') {
+        // Handle Firestore Timestamp object
+        const d = new Date(timestamp.seconds * 1000 + (timestamp.nanoseconds || 0) / 1000000);
+        return isValid(d) ? d : null;
+    }
+    if (timestamp && typeof timestamp.toDate === 'function') {
+        // Handle older Firestore Timestamp objects
+        const d = timestamp.toDate();
+        return isValid(d) ? d : null;
+    }
+    return null;
 }
 
 const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
