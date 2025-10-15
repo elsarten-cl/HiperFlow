@@ -62,7 +62,7 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value === 'ninguna' ? '' : value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -131,14 +131,14 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
         <Label htmlFor="companyId">Empresa (opcional)</Label>
         <Select
           name="companyId"
-          value={formData.companyId}
+          value={formData.companyId || 'ninguna'}
           onValueChange={(value) => handleSelectChange('companyId', value)}
         >
           <SelectTrigger id="companyId">
             <SelectValue placeholder="Selecciona una empresa" />
           </SelectTrigger>
           <SelectContent>
-             <SelectItem value="">Ninguna</SelectItem>
+             <SelectItem value="ninguna">Ninguna</SelectItem>
             {companies.map((company) => (
               <SelectItem key={company.id} value={company.id}>
                 {company.name}
