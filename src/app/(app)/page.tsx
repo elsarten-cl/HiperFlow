@@ -46,7 +46,7 @@ export default function DashboardPage() {
     if (!firestore || !user || !user.uid) {
       toast({
         title: 'Error',
-        description: 'No se puede guardar la oportunidad. Usuario no autenticado.',
+        description: 'No se puede guardar el flow. Usuario no autenticado.',
         variant: 'destructive',
       });
       return;
@@ -54,7 +54,7 @@ export default function DashboardPage() {
 
     const dealsCollection = collection(firestore, 'deals');
     const newDeal: Omit<Deal, 'id'> = {
-      title: formData.title || 'Nueva Oportunidad',
+      title: formData.title || 'Nuevo Flow',
       teamId: 'team-1',
       stage: 'potencial',
       amount: formData.amount || 0,
@@ -71,8 +71,8 @@ export default function DashboardPage() {
     addDocumentNonBlocking(dealsCollection, newDeal);
 
     toast({
-      title: 'Oportunidad Creada',
-      description: `${formData.title} ha sido agregada a tu flow de ventas.`,
+      title: 'Flow Creado',
+      description: `${formData.title} ha sido agregado a tu flow de ventas.`,
     });
     setIsSheetOpen(false);
   };
@@ -112,3 +112,5 @@ export default function DashboardPage() {
     </>
   );
 }
+
+    

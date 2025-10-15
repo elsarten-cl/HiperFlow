@@ -19,6 +19,12 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Separator } from '@/components/ui/separator';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   useCollection,
   useFirestore,
   useMemoFirebase,
@@ -26,7 +32,7 @@ import {
 } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
 import type { Contact, Company, Deal } from '@/lib/types';
-import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil } from 'lucide-react';
+import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -78,16 +84,22 @@ const CustomerDetailPanel = ({
           <ScrollArea className="h-full">
             <div className="p-6">
                 <SheetHeader className="mb-6 text-left">
-                <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16">
-                        <AvatarImage src={contact.avatarUrl} />
-                        <AvatarFallback><User /></AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <SheetTitle className="text-2xl font-headline">{contact.name}</SheetTitle>
-                        <SheetDescription className="text-muted-foreground">
-                            {contact.jobTitle} {company ? `en ${company.name}` : ''}
-                        </SheetDescription>
+                <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16">
+                            <AvatarImage src={contact.avatarUrl} />
+                            <AvatarFallback><User /></AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <SheetTitle className="text-2xl font-headline">{contact.name}</SheetTitle>
+                            <SheetDescription className="text-muted-foreground">
+                                {contact.jobTitle} {company ? `en ${company.name}` : ''}
+                            </SheetDescription>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                        <Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="outline" size="icon" className="hover:bg-destructive hover:text-destructive-foreground"><Trash2 className="h-4 w-4" /></Button>
                     </div>
                 </div>
                 </SheetHeader>
@@ -247,8 +259,9 @@ export default function CustomersPage() {
 
   const getLeadStatus = (contact: WithId<Contact>) => {
       // Dummy logic, should be replaced with real data
-      if (contact.id.includes('1')) return 'cliente activo';
-      if (contact.id.includes('2')) return 'en seguimiento';
+      const deals = dealsByContact[contact.id] || [];
+      if (deals.some(d => d.stage === 'ganado')) return 'cliente activo';
+      if (deals.length > 0) return 'en seguimiento';
       return 'nuevo';
   }
   
@@ -335,12 +348,13 @@ export default function CustomersPage() {
                   <TableHead>Empresa</TableHead>
                   <TableHead>Etapa SaleFlow</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead><span className="sr-only">Acciones</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">Cargando clientes...</TableCell>
+                    <TableCell colSpan={5} className="h-24 text-center">Cargando clientes...</TableCell>
                   </TableRow>
                 ) : (
                   contacts && contacts.map((contact) => {
@@ -360,6 +374,26 @@ export default function CustomersPage() {
                             {statusConfig ? (
                                <Badge className={cn("text-xs", statusConfig.color)} variant="outline">{statusConfig.name}</Badge>
                             ): <Badge variant="outline">Desconocido</Badge>}
+                        </TableCell>
+                        <TableCell>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                                        <span className="sr-only">Abrir menú</span>
+                                        <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                    <DropdownMenuItem>
+                                        <Pencil className="mr-2 h-4 w-4"/>
+                                        Editar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="text-red-500 focus:text-red-500">
+                                        <Trash2 className="mr-2 h-4 w-4"/>
+                                        Eliminar
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     )
@@ -408,3 +442,5 @@ export default function CustomersPage() {
     </div>
   );
 }
+
+    

@@ -158,8 +158,10 @@ export function DealForm({ onSave, onCancel, contacts, companies, deal }: DealFo
         <Button type="button" variant="ghost" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit">Guardar Oportunidad</Button>
+        <Button type="submit">Guardar Flow</Button>
       </div>
     </form>
   );
 }
+
+    
