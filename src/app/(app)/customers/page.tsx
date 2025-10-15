@@ -112,7 +112,7 @@ const CustomerDetailPanel = ({
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-semibold font-headline">Oportunidades</h3>
                         <Button variant="outline" size="sm" onClick={() => onOpenNewDeal(contact, company)}>
-                            <Plus className="mr-2 h-4 w-4" /> Nueva Oportunidad
+                            <Plus className="mr-2 h-4 w-4" /> Nuevo Flow
                         </Button>
                     </div>
                     <div className="space-y-3">
@@ -386,7 +386,7 @@ export default function CustomersPage() {
         <Sheet open={isDealSheetOpen} onOpenChange={setIsDealSheetOpen}>
             <SheetContent className="sm:max-w-lg">
             <SheetHeader>
-                <SheetTitle>Crear Nueva Oportunidad</SheetTitle>
+                <SheetTitle>Crear Nuevo Flow</SheetTitle>
                 <SheetDescription>
                     Inicia un nuevo negocio para {dealContact?.name}.
                 </SheetDescription>

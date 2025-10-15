@@ -85,7 +85,7 @@ export default function DashboardPage() {
       >
         <Button onClick={() => setIsSheetOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Nueva Oportunidad
+          Nuevo Flow
         </Button>
       </PageHeader>
       <p className="text-muted-foreground -mt-4 mb-8 text-sm md:text-base">
@@ -97,7 +97,7 @@ export default function DashboardPage() {
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="sm:max-w-lg">
           <SheetHeader>
-            <SheetTitle>Crear Nueva Oportunidad</SheetTitle>
+            <SheetTitle>Crear Nuevo Flow</SheetTitle>
           </SheetHeader>
           <div className="py-4">
             <DealForm
