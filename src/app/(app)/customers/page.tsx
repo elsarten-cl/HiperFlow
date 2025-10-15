@@ -90,10 +90,6 @@ const CustomerDetailPanel = ({
                 <SheetHeader className="mb-6 text-left">
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
-                        <Avatar className="h-16 w-16">
-                            <AvatarImage src={contact.avatarUrl} />
-                            <AvatarFallback><User /></AvatarFallback>
-                        </Avatar>
                         <div>
                             <SheetTitle className="text-2xl font-headline">{contact.name}</SheetTitle>
                             <SheetDescription className="text-muted-foreground">

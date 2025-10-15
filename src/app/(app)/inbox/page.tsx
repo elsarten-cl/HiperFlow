@@ -5,7 +5,6 @@ import { PageHeader } from '@/components/page-header';
 import { companies, contacts, conversations } from '@/lib/data';
 import type { Conversation, Message } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -35,10 +34,9 @@ const ConversationList = ({
             selectedContactId === contact.id && 'bg-muted'
           )}
         >
-          <Avatar>
-            <AvatarImage src={contact.avatarUrl} alt={contact.name} />
-            <AvatarFallback><UserCircle /></AvatarFallback>
-          </Avatar>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+            <UserCircle />
+          </div>
           <div className="flex-1 overflow-hidden">
             <p className="font-semibold truncate">{contact.name}</p>
             <p className="text-sm text-muted-foreground truncate">
@@ -72,10 +70,9 @@ const MessageView = ({ conversation }: { conversation: Conversation | undefined 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-4 p-4 border-b">
-        <Avatar>
-          <AvatarImage src={contact.avatarUrl} alt={contact.name} />
-          <AvatarFallback><UserCircle /></AvatarFallback>
-        </Avatar>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
+            <UserCircle />
+        </div>
         <div>
           <p className="font-semibold">{contact.name}</p>
           <p className="text-sm text-muted-foreground">{contact.jobTitle}{companyName && ` en ${companyName}`}</p>

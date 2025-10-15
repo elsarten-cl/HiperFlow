@@ -29,7 +29,6 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
     phone: '',
     jobTitle: '',
     companyId: '',
-    avatarUrl: 'https://picsum.photos/seed/10/40/40' // default
   });
 
   useEffect(() => {
@@ -40,7 +39,6 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
         phone: contact.phone || '',
         jobTitle: contact.jobTitle || '',
         companyId: contact.companyId || '',
-        avatarUrl: contact.avatarUrl || 'https://picsum.photos/seed/10/40/40'
       });
     } else {
         // Reset form for new contact
@@ -50,7 +48,6 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
             phone: '',
             jobTitle: '',
             companyId: '',
-            avatarUrl: `https://picsum.photos/seed/${Math.floor(Math.random() * 100)}/40/40`
         });
     }
   }, [contact]);
@@ -73,7 +70,6 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
       phone: formData.phone,
       jobTitle: formData.jobTitle,
       companyId: formData.companyId,
-      avatarUrl: formData.avatarUrl,
     };
     onSave(contactData);
   };

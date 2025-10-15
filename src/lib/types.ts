@@ -6,7 +6,6 @@ export type Contact = {
   email: string;
   jobTitle?: string;
   companyId: string;
-  avatarUrl: string;
   phone?: string;
   socials?: string[];
   lastContacted: string | Timestamp;

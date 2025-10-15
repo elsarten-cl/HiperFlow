@@ -28,7 +28,6 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth, useUser } from '@/firebase';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
@@ -163,12 +162,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar>
-                  <AvatarImage src={user.photoURL || "https://picsum.photos/seed/9/40/40"} alt="Avatar de Usuario" />
-                  <AvatarFallback>
-                    <UserCircle />
-                  </AvatarFallback>
-                </Avatar>
+                <UserCircle />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
