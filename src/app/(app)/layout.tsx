@@ -12,6 +12,7 @@ import {
   History,
   Menu,
   LogOut,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -64,6 +65,7 @@ const HiperFlowLogo = () => (
 const navItems = [
   { href: '/', label: 'SaleFlow', icon: LayoutGrid },
   { href: '/customers', label: 'Clientes', icon: Users },
+  { href: '/agenda', label: 'Agenda', icon: ClipboardCheck },
   { href: '/activities', label: 'Actividades', icon: History },
   { href: '/inbox', label: 'Inbox', icon: Mail },
   { href: '/social', label: 'RRSS', icon: PenSquare },

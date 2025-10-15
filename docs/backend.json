@@ -595,6 +595,81 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "Task": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Task",
+      "type": "object",
+      "description": "Represents a task or to-do item in the Agenda module.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the task."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to Team. Specifies the team to which the task belongs."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title or name of the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the task."
+        },
+        "status": {
+          "type": "string",
+          "description": "Current status of the task.",
+          "enum": ["pendiente", "en curso", "completada"]
+        },
+        "priority": {
+          "type": "string",
+          "description": "Priority level of the task.",
+          "enum": ["baja", "media", "alta"]
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "Due date for the task.",
+          "format": "date-time"
+        },
+        "contactId": {
+          "type": "string",
+          "description": "Optional reference to a Contact."
+        },
+        "companyId": {
+          "type": "string",
+          "description": "Optional reference to a Company."
+        },
+        "dealId": {
+          "type": "string",
+          "description": "Optional reference to a Deal."
+        },
+        "assignedTo": {
+          "type": "string",
+          "description": "User ID of the person responsible for the task."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the task was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the task was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "teamId",
+        "title",
+        "status",
+        "priority",
+        "assignedTo",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "auth": {
@@ -813,6 +888,22 @@
             {
               "name": "socialPostId",
               "description": "Unique identifier for the social post."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/tasks/{taskId}",
+        "definition": {
+          "entityName": "Task",
+          "schema": {
+            "$ref": "#/backend/entities/Task"
+          },
+          "description": "Represents a task in the Agenda module.",
+          "params": [
+            {
+              "name": "taskId",
+              "description": "Unique identifier for the task."
             }
           ]
         }

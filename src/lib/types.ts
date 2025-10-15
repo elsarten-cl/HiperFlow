@@ -81,3 +81,22 @@ export type Conversation = {
   contactId: string;
   messages: Message[];
 };
+
+export type TaskStatus = 'pendiente' | 'en curso' | 'completada';
+export type TaskPriority = 'baja' | 'media' | 'alta';
+
+export type Task = {
+    id: string;
+    title: string;
+    description?: string;
+    status: TaskStatus;
+    priority: TaskPriority;
+    dueDate?: string | Timestamp | FieldValue;
+    contactId?: string;
+    companyId?: string;
+    dealId?: string;
+    assignedTo: string; // userId
+    teamId: string;
+    createdAt: FieldValue | Timestamp;
+    updatedAt: FieldValue | Timestamp;
+};
