@@ -1,12 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { collection, query, where, doc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, serverTimestamp, addDoc, Timestamp } from 'firebase/firestore';
 import {
   useCollection,
   useFirestore,
+  useUser,
   useMemoFirebase,
   WithId,
+  addDocumentNonBlocking,
 } from '@/firebase';
 import { type Deal, type DealStage } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,8 +36,9 @@ import {
   Handshake,
   Goal,
   ArchiveX,
+  AlertCircle,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Tooltip,
@@ -108,6 +111,16 @@ const stageConfig: Record<
   },
 };
 
+const getTimestampAsDate = (timestamp: any): Date | null => {
+  if (!timestamp) return null;
+  if (timestamp instanceof Date) return timestamp;
+  if (typeof timestamp === 'string') return new Date(timestamp);
+  if (timestamp && typeof timestamp.seconds === 'number') {
+    return new Date(timestamp.seconds * 1000);
+  }
+  return null;
+}
+
 const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
   const {
     attributes,
@@ -123,12 +136,12 @@ const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
     transition,
   };
 
-  const contactInfo =
-    [deal.contact?.name, deal.company?.name].filter(Boolean).join(' · ') || 'Sin contacto';
-  const nextActionDate =
-    deal.nextAction && !isNaN(new Date(deal.nextAction).getTime())
-      ? format(new Date(deal.nextAction), 'dd MMM', { locale: es })
-      : deal.nextAction;
+  const contactInfo = deal.company?.name || deal.contact?.name || 'Sin contacto';
+  const updatedAtDate = getTimestampAsDate(deal.updatedAt);
+  const requiresFollowUp = updatedAtDate ? differenceInDays(new Date(), updatedAtDate) > 7 : false;
+
+  const lastActivityDate = getTimestampAsDate(deal.lastActivity);
+
 
   if (isDragging) {
     return (
@@ -146,26 +159,37 @@ const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
       style={style}
       {...attributes}
       {...listeners}
-      className="mb-4 touch-none bg-card/80 hover:bg-card transition-colors duration-200 cursor-grab active:cursor-grabbing border"
+      className="mb-4 touch-none bg-card/80 hover:bg-card transition-colors duration-200 cursor-grab active:cursor-grabbing border relative"
       style={{ borderColor: 'hsl(var(--border) / 0.2)' }}
     >
+      {requiresFollowUp && (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+                <div className="absolute top-2 right-2 text-yellow-500">
+                    <AlertCircle className="h-4 w-4" />
+                </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Requiere seguimiento (más de 7 días sin actualizar)</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
       <CardHeader className="p-3">
-        <CardTitle className="text-base font-medium">{deal.title}</CardTitle>
+        <CardTitle className="text-base font-semibold text-foreground pr-6">{deal.title}</CardTitle>
+        <p className="text-sm text-muted-foreground">{contactInfo}</p>
       </CardHeader>
       <CardContent className="p-3 pt-0 flex flex-col gap-2 text-sm text-muted-foreground">
         <div className="flex items-center gap-2">
-          <User className="h-4 w-4" />
-          <span>{contactInfo}</span>
-        </div>
-        <div className="flex items-center gap-2">
           <MessageSquare className="h-4 w-4" />
           <span className="truncate">
-            {deal.lastActivity || 'Sin actividad reciente'}
+            {lastActivityDate ? `Actividad: ${format(lastActivityDate, 'dd MMM', { locale: es })}` : 'Sin actividad reciente'}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 font-code">
           <DollarSign className="h-4 w-4" />
-          <span>
+          <span className="font-semibold">
             {new Intl.NumberFormat('es-CL', {
               style: 'currency',
               currency: deal.currency || 'CLP',
@@ -173,9 +197,9 @@ const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
           </span>
         </div>
         {deal.nextAction && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 text-purple-400">
             <Clock className="h-4 w-4" />
-            <span>{nextActionDate}</span>
+            <span className="font-medium">{deal.nextAction}</span>
           </div>
         )}
       </CardContent>
@@ -218,7 +242,7 @@ const KanbanColumn = ({
                   {deals.length}
                 </Badge>
               </div>
-              <span className="text-sm font-medium text-muted-foreground">
+              <span className="text-sm font-medium font-code text-muted-foreground">
                 {new Intl.NumberFormat('es-CL', {
                   style: 'currency',
                   currency: 'CLP',
@@ -233,12 +257,12 @@ const KanbanColumn = ({
         </Tooltip>
       </TooltipProvider>
 
-      <div className="flex-1 p-2 bg-card/50 rounded-lg min-h-[100px] overflow-y-auto">
+      <div className="flex-1 p-2 bg-card/50 rounded-lg min-h-[200px] overflow-y-auto">
         <SortableContext items={dealsIds}>
           {deals.length > 0 ? (
             deals.map((deal) => <DealCard key={deal.id} deal={deal} />)
           ) : (
-            <div className="text-center text-sm italic text-muted-foreground p-4">
+            <div className="text-center text-sm italic text-muted-foreground p-4 h-full flex items-center justify-center">
               {config.emptyStateText}
             </div>
           )}
@@ -259,6 +283,7 @@ const dealStages: DealStage[] = [
 
 export const KanbanBoard = () => {
   const firestore = useFirestore();
+  const { user } = useUser();
   const teamId = 'team-1';
 
   const dealsRef = useMemoFirebase(
@@ -302,7 +327,7 @@ export const KanbanBoard = () => {
     }
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = async (event: DragEndEvent) => {
     setActiveDeal(null);
     const { active, over } = event;
     if (!over) return;
@@ -331,9 +356,26 @@ export const KanbanBoard = () => {
     }
 
 
-    if (newStage && newStage !== dealToMove.stage && firestore) {
+    if (newStage && newStage !== dealToMove.stage && firestore && user) {
         const dealRef = doc(firestore, 'deals', dealToMove.id);
-        updateDoc(dealRef, { stage: newStage });
+        const activitiesCollection = collection(firestore, 'activities');
+
+        const activityNotes = `Cambio de etapa: ${dealToMove.stage} -> ${newStage} por ${user.email || 'usuario'}`;
+
+        await updateDoc(dealRef, { 
+            stage: newStage,
+            updatedAt: serverTimestamp(),
+            lastActivity: new Date().toISOString(),
+        });
+        
+        await addDoc(activitiesCollection, {
+            type: 'stageChange',
+            notes: activityNotes,
+            timestamp: serverTimestamp(),
+            dealId: dealToMove.id,
+            contactId: dealToMove.contact?.id || '',
+            teamId: dealToMove.teamId,
+        });
     }
   };
 

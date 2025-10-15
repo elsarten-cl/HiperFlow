@@ -9,7 +9,6 @@ import {
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '@/components/ui/sheet';
 import { Plus } from 'lucide-react';
 import { DealForm } from '@/components/deal-form';
@@ -54,7 +53,7 @@ export default function DashboardPage() {
     }
 
     const dealsCollection = collection(firestore, 'deals');
-    const newDeal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt'> = {
+    const newDeal: Omit<Deal, 'id'> = {
       title: formData.title || 'Nueva Oportunidad',
       teamId: 'team-1',
       stage: 'potencial',
@@ -62,7 +61,7 @@ export default function DashboardPage() {
       currency: formData.currency || 'CLP',
       contact: formData.contact,
       company: formData.company,
-      lastActivity: 'Oportunidad creada',
+      lastActivity: new Date().toISOString(),
       ownerId: user.uid,
       status: 'activo',
       createdAt: serverTimestamp(),
@@ -81,16 +80,16 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Flow de Ventas"
-        description="Visualiza y avanza tus oportunidades con claridad."
+        title="SaleFlow"
+        description="Gestiona, visualiza y acelera tus oportunidades comerciales con claridad y precisión."
       >
         <Button onClick={() => setIsSheetOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          NUEVO FLOW
+          + Nueva Oportunidad
         </Button>
       </PageHeader>
       <p className="text-muted-foreground -mt-4 mb-8 text-sm md:text-base">
-        Cada oportunidad representa un posible negocio. Muévela entre etapas según su avance y mantén el control de tu flujo comercial.
+        Cada oportunidad representa un posible negocio. Muévela entre etapas según su avance y mantén el control total de tu SaleFlow.
       </p>
       
       <KanbanBoard />

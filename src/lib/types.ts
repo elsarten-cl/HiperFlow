@@ -41,7 +41,7 @@ export type Deal = {
   stage: DealStage;
   amount: number;
   currency: "CLP" | "USD";
-  contact: {
+  contact?: {
     id: string;
     name: string;
     email?: string;
@@ -50,13 +50,13 @@ export type Deal = {
     id: string;
     name: string;
   };
-  lastActivity?: string;
+  lastActivity: string | Timestamp | FieldValue;
   nextAction?: string;
   priority?: "alta" | "media" | "baja";
   ownerId: string;
   status: "activo" | "cerrado" | "descartado";
-  createdAt: FieldValue;
-  updatedAt: FieldValue;
+  createdAt: FieldValue | Timestamp;
+  updatedAt: FieldValue | Timestamp;
 };
 
 
@@ -65,7 +65,7 @@ export type Activity = {
   type: 'Email' | 'Llamada' | 'Reunión' | 'Nota' | 'stageChange';
   contactId: string;
   dealId?: string;
-  timestamp: string;
+  timestamp: FieldValue | Timestamp;
   notes: string;
 };
 
