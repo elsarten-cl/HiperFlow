@@ -29,8 +29,11 @@ import {
   useFirestore,
   useMemoFirebase,
   WithId,
+  addDocumentNonBlocking,
+  updateDocumentNonBlocking,
+  deleteDocumentNonBlocking
 } from '@/firebase';
-import { collection, doc, query, where } from 'firebase/firestore';
+import { collection, doc, query, where, serverTimestamp } from 'firebase/firestore';
 import type { Contact, Company, Deal } from '@/lib/types';
 import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -38,9 +41,8 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { DealForm } from '@/components/deal-form';
+import { ContactForm } from '@/components/contact-form';
 import { useToast } from '@/hooks/use-toast';
-import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { serverTimestamp } from 'firebase/firestore';
 import { useUser } from '@/firebase';
 
 const stageConfig: Record<string, { icon: React.ElementType; color: string; name: string; }> = {
@@ -65,12 +67,14 @@ const CustomerDetailPanel = ({
   deals,
   onClose,
   onOpenNewDeal,
+  onEditContact
 }: {
   contact: WithId<Contact>;
   company: WithId<Company> | undefined;
   deals: WithId<Deal>[];
   onClose: () => void;
   onOpenNewDeal: (contact: WithId<Contact>, company?: WithId<Company>) => void;
+  onEditContact: (contact: WithId<Contact>) => void;
 }) => {
 
   const getStageIcon = (stage: string) => {
@@ -98,7 +102,7 @@ const CustomerDetailPanel = ({
                         </div>
                     </div>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="icon"><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="outline" size="icon" onClick={() => onEditContact(contact)}><Pencil className="h-4 w-4" /></Button>
                         <Button variant="outline" size="icon" className="hover:bg-destructive hover:text-destructive-foreground"><Trash2 className="h-4 w-4" /></Button>
                     </div>
                 </div>
@@ -185,6 +189,8 @@ const CustomerDetailPanel = ({
 
 export default function CustomersPage() {
   const [selectedContact, setSelectedContact] = useState<WithId<Contact> | null>(null);
+  const [editingContact, setEditingContact] = useState<WithId<Contact> | null>(null);
+  const [isNewContactSheetOpen, setIsNewContactSheetOpen] = useState(false);
   const [isDealSheetOpen, setIsDealSheetOpen] = useState(false);
   const [dealContact, setDealContact] = useState<WithId<Contact> | null>(null);
   const [dealCompany, setDealCompany] = useState<WithId<Company> | undefined>(undefined);
@@ -236,6 +242,16 @@ export default function CustomersPage() {
     setDealCompany(company);
     setIsDealSheetOpen(true);
   };
+
+  const handleEditContact = (contact: WithId<Contact>) => {
+    setEditingContact(contact);
+    setIsNewContactSheetOpen(true);
+  };
+
+  const handleCloseContactForm = () => {
+    setEditingContact(null);
+    setIsNewContactSheetOpen(false);
+  }
   
   const handleSaveDeal = (formData: Partial<Deal>) => {
     if (!firestore || !user) return;
@@ -251,37 +267,49 @@ export default function CustomersPage() {
       lastActivity: serverTimestamp(),
     };
     addDocumentNonBlocking(dealsCollection, newDeal as Deal);
-    toast({ title: "Oportunidad Creada", description: "La nueva oportunidad ha sido añadida a tu SaleFlow." });
+    toast({ title: "Flow Creado", description: "El nuevo flow ha sido añadido a tu SaleFlow." });
     setIsDealSheetOpen(false);
   };
+  
+  const handleSaveContact = (formData: Partial<Contact>) => {
+    if (!firestore || !user) return;
+
+    if (editingContact) {
+      // Update existing contact
+      const contactRef = doc(firestore, 'contacts', editingContact.id);
+      updateDocumentNonBlocking(contactRef, { ...formData, updatedAt: serverTimestamp() });
+      toast({ title: "Cliente Actualizado", description: "La información del cliente ha sido actualizada." });
+    } else {
+      // Create new contact
+      const contactsCollection = collection(firestore, 'contacts');
+      const newContact = {
+        ...formData,
+        teamId,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      };
+      addDocumentNonBlocking(contactsCollection, newContact as Contact);
+      toast({ title: "Cliente Creado", description: "El nuevo cliente ha sido añadido." });
+    }
+    handleCloseContactForm();
+  };
+
 
   const isLoading = isLoadingContacts || isLoadingCompanies;
 
   const getLeadStatus = (contact: WithId<Contact>) => {
-      // Dummy logic, should be replaced with real data
-      const deals = dealsByContact[contact.id] || [];
-      if (deals.some(d => d.stage === 'ganado')) return 'cliente activo';
-      if (deals.length > 0) return 'en seguimiento';
-      return 'nuevo';
-  }
+    // This is placeholder logic. A real implementation would be more robust.
+    const dealsForContact = dealsByContact[contact.id] || [];
+    const hasWonDeal = dealsForContact.some(d => d.stage === 'ganado');
+    
+    if (hasWonDeal) return 'cliente activo';
+    if (dealsForContact.length > 0) return 'en seguimiento';
+    return 'nuevo';
+  };
   
   const getStageDisplay = (contactId: string) => {
-      const deals = dealsByContact[contactId] || [];
-      if (deals.length === 0) return <span className="text-muted-foreground">-</span>;
-      
-      // A more robust implementation would sort deals by date
-      const lastDeal = deals[deals.length - 1];
-      if (!lastDeal) return <span className="text-muted-foreground">-</span>;
-
-      const config = stageConfig[lastDeal.stage];
-      if(!config) return <span className="text-muted-foreground">{lastDeal.stage}</span>;
-
-      return (
-          <div className="flex items-center gap-2">
-              <config.icon className={cn("h-4 w-4", config.color)} />
-              <span>{config.name}</span>
-          </div>
-      );
+    // This is placeholder logic.
+    return <span className="text-muted-foreground">-</span>;
   }
 
   return (
@@ -290,7 +318,7 @@ export default function CustomersPage() {
         title="Clientes"
         description="Centraliza la información de tus clientes en un solo lugar, con historial, contexto y acciones conectadas."
       >
-        <Button>
+        <Button onClick={() => setIsNewContactSheetOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Nuevo Cliente
         </Button>
@@ -384,7 +412,7 @@ export default function CustomersPage() {
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleEditContact(contact)}>
                                         <Pencil className="mr-2 h-4 w-4"/>
                                         Editar
                                     </DropdownMenuItem>
@@ -413,9 +441,30 @@ export default function CustomersPage() {
                 deals={dealsByContact[selectedContact.id] || []}
                 onClose={() => setSelectedContact(null)}
                 onOpenNewDeal={handleOpenNewDeal}
+                onEditContact={handleEditContact}
             />
         )}
         
+        {/* New/Edit Contact Sheet */}
+        <Sheet open={isNewContactSheetOpen} onOpenChange={handleCloseContactForm}>
+            <SheetContent className="sm:max-w-lg">
+            <SheetHeader>
+                <SheetTitle>{editingContact ? 'Editar Cliente' : 'Crear Nuevo Cliente'}</SheetTitle>
+                <SheetDescription>
+                    {editingContact ? 'Actualiza la información de tu cliente.' : 'Añade un nuevo cliente a tu base de datos.'}
+                </SheetDescription>
+            </SheetHeader>
+            <div className="py-4">
+                <ContactForm
+                    onSave={handleSaveContact}
+                    onCancel={handleCloseContactForm}
+                    companies={companies || []}
+                    contact={editingContact}
+                />
+            </div>
+            </SheetContent>
+        </Sheet>
+
         {/* New Deal Sheet */}
         <Sheet open={isDealSheetOpen} onOpenChange={setIsDealSheetOpen}>
             <SheetContent className="sm:max-w-lg">
@@ -427,14 +476,14 @@ export default function CustomersPage() {
             </SheetHeader>
             <div className="py-4">
                 <DealForm
-                onSave={handleSaveDeal}
-                onCancel={() => setIsDealSheetOpen(false)}
-                contacts={contacts || []}
-                companies={companies || []}
-                deal={{
-                    contact: dealContact ? { id: dealContact.id, name: dealContact.name, email: dealContact.email } : undefined,
-                    company: dealCompany ? { id: dealCompany.id, name: dealCompany.name } : undefined,
-                }}
+                    onSave={handleSaveDeal}
+                    onCancel={() => setIsDealSheetOpen(false)}
+                    contacts={contacts || []}
+                    companies={companies || []}
+                    deal={{
+                        contact: dealContact ? { id: dealContact.id, name: dealContact.name, email: dealContact.email } : undefined,
+                        company: dealCompany ? { id: dealCompany.id, name: dealCompany.name } : undefined,
+                    }}
                 />
             </div>
             </SheetContent>
@@ -442,5 +491,3 @@ export default function CustomersPage() {
     </div>
   );
 }
-
-    
