@@ -38,7 +38,7 @@ import {
   ArchiveX,
   AlertCircle,
 } from 'lucide-react';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
   Tooltip,
@@ -114,9 +114,17 @@ const stageConfig: Record<
 const getTimestampAsDate = (timestamp: any): Date | null => {
   if (!timestamp) return null;
   if (timestamp instanceof Date) return timestamp;
-  if (typeof timestamp === 'string') return new Date(timestamp);
-  if (timestamp && typeof timestamp.seconds === 'number') {
-    return new Date(timestamp.seconds * 1000);
+  if (typeof timestamp === 'string') {
+    const d = new Date(timestamp);
+    return isValid(d) ? d : null;
+  }
+  if (timestamp && typeof timestamp.seconds === 'number' && typeof timestamp.nanoseconds === 'number') {
+    const d = new Date(timestamp.seconds * 1000 + timestamp.nanoseconds / 1000000);
+    return isValid(d) ? d : null;
+  }
+   if (timestamp && typeof timestamp.toDate === 'function') {
+    const d = timestamp.toDate();
+    return isValid(d) ? d : null;
   }
   return null;
 }
@@ -184,7 +192,7 @@ const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
         <div className="flex items-center gap-2">
           <MessageSquare className="h-4 w-4" />
           <span className="truncate">
-            {lastActivityDate ? `Actividad: ${format(lastActivityDate, 'dd MMM', { locale: es })}` : 'Sin actividad reciente'}
+            {lastActivityDate && isValid(lastActivityDate) ? `Actividad: ${format(lastActivityDate, 'dd MMM', { locale: es })}` : 'Sin actividad reciente'}
           </span>
         </div>
         <div className="flex items-center gap-2 font-code">
@@ -360,12 +368,12 @@ export const KanbanBoard = () => {
         const dealRef = doc(firestore, 'deals', dealToMove.id);
         const activitiesCollection = collection(firestore, 'activities');
 
-        const activityNotes = `Cambio de etapa: ${dealToMove.stage} -> ${newStage} por ${user.email || 'usuario'}`;
+        const activityNotes = `Cambio de etapa: ${stageConfig[dealToMove.stage]?.name || dealToMove.stage} -> ${stageConfig[newStage]?.name || newStage} por ${user.email || 'usuario anónimo'}`;
 
         await updateDoc(dealRef, { 
             stage: newStage,
             updatedAt: serverTimestamp(),
-            lastActivity: new Date().toISOString(),
+            lastActivity: serverTimestamp(),
         });
         
         await addDoc(activitiesCollection, {
