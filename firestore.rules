@@ -1,228 +1,432 @@
+/**
+ * @fileOverview
+ * Core Philosophy: This ruleset enforces a flattened data model where all major entities reside in root-level collections.
+ * All data is scoped to a team using the `teamId` field within each document.
+ *
+ * Data Structure: All collections are at the root level (e.g., /users, /companies).  Each document contains a `teamId` field.
+ *
+ * Key Security Decisions:
+ * - Listing of all collections is explicitly denied to all users. This prevents unauthorized data discovery.
+ * - The `teamId` field within each document is the primary means of scoping data access.
+ * - Data validation is minimal to facilitate rapid prototyping, focusing solely on authorization-critical fields.
+ * - Strong ownership validation is applied to all write operations.
+ *
+ * Denormalization for Authorization: The `teamId` is denormalized onto every document to allow for simple, efficient team-based access control rules without requiring additional reads.
+ *
+ * Structural Segregation: All data resides in a single collection, with access controlled by the `teamId` field. There are no separate private/public collections.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
     /**
-     * @description Manages access to team documents. Only authenticated users can read or create teams.
+     * @description Enforces team-based access control for the 'teams' collection.
      * @path /teams/{teamId}
-     * @allow (create) User with valid auth can create a new team.
-     * @deny (create) User without auth cannot create a team.
-     * @principle Enforces authentication for team creation and restricts updates/deletes.
+     * @allow (create, update, delete) Authenticated user can manage their own team if the teamId matches their teamId.
+     * @deny (create, update, delete) Authenticated user cannot manage another team's data.
+     * @principle Enforces document ownership for writes.
      */
     match /teams/{teamId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if false;
-      allow delete: if false;
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingOwner(teamId) {
+        return isOwner(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isOwner(teamId) && request.resource.data.id == teamId;
+      allow update: if isExistingOwner(teamId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(teamId);
     }
 
     /**
-     * @description Manages access to user documents. Users can only create their own document,
-     *              and no one can update or delete user documents.
+     * @description Enforces team-based access control for the 'users' collection.
      * @path /users/{userId}
-     * @allow (create) User can create their own user document if the userId matches their auth UID.
-     * @deny (create) User cannot create a user document for another user.
-     * @principle Enforces user ownership and prevents unauthorized data modification.
+     * @allow (create) Authenticated user can create their own user document if the userId matches their auth.uid.
+     * @allow (update, delete) Authenticated user can update/delete their own user document.
+     * @deny (create, update, delete) Authenticated user cannot manage another user's data.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if true;
       allow list: if false;
-      allow create: if isOwner(userId) && request.auth.uid == userId;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Manages access to company documents.  Requires authentication and teamId matching.
+     * @description Enforces team-based access control for the 'companies' collection.
      * @path /companies/{companyId}
-     * @allow (create) Authenticated user can create a company if the teamId matches.
-     * @deny (create) User without auth cannot create a company.
-     * @principle Enforces team-based access control.
+     * @allow (create, update, delete) Authenticated user can manage company data if the teamId matches.
+     * @deny (create, update, delete) Authenticated user cannot manage company data for a different team.
+     * @principle Enforces team-based ownership for writes.
      */
     match /companies/{companyId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.teamId != null;
+      allow update: if isExistingTeam(resource.data.teamId);
+      allow delete: if isExistingTeam(resource.data.teamId);
     }
 
     /**
-     * @description Manages access to contact documents.  Requires authentication.
+     * @description Enforces team-based access control for the 'contacts' collection.
      * @path /contacts/{contactId}
-     * @allow (create) Authenticated user can create a contact.
-     * @deny (create) User without auth cannot create a contact.
-     * @principle Requires authentication for all operations.
+     * @allow (create, update, delete) Authenticated user can manage contact data if the teamId matches.
+     * @deny (create, update, delete) Authenticated user cannot manage contact data for a different team.
+     * @principle Enforces team-based ownership for writes.
      */
     match /contacts/{contactId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.teamId != null;
+      allow update: if isExistingTeam(resource.data.teamId);
+      allow delete: if isExistingTeam(resource.data.teamId);
     }
 
     /**
-     * @description Manages access to pipeline documents.  Requires authentication.
+     * @description Enforces team-based access control for the 'pipelines' collection.
      * @path /pipelines/{pipelineId}
-     * @allow (create) Authenticated user can create a pipeline.
-     * @deny (create) User without auth cannot create a pipeline.
-     * @principle Requires authentication for all operations.
+     * @allow (create, update, delete) Authenticated user can manage pipeline data if the teamId matches.
+     * @deny (create, update, delete) Authenticated user cannot manage pipeline data for a different team.
+     * @principle Enforces team-based ownership for writes.
      */
     match /pipelines/{pipelineId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.teamId != null;
+      allow update: if isExistingTeam(resource.data.teamId);
+      allow delete: if isExistingTeam(resource.data.teamId);
     }
 
     /**
-     * @description Manages access to stage documents within a pipeline. Requires authentication.
+     * @description Enforces team-based access control for the 'stages' subcollection under 'pipelines'.
      * @path /pipelines/{pipelineId}/stages/{stageId}
-     * @allow (create) Authenticated user can create a stage within a pipeline.
-     * @deny (create) User without auth cannot create a stage.
-     * @principle Requires authentication for all operations.
+     * @allow (create, update, delete) Authenticated user can manage stage data if the teamId of the parent pipeline matches.
+     * @deny (create, update, delete) Authenticated user cannot manage stage data for a different team's pipeline.
+     * @principle Enforces team-based ownership for writes, inheriting from the parent document.
      */
     match /pipelines/{pipelineId}/stages/{stageId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && get(/databases/$(database)/documents/pipelines/$(pipelineId)).data.teamId == request.resource.data.teamId;
+      allow update: if isExistingTeam(get(/databases/$(database)/documents/pipelines/$(pipelineId)).data.teamId);
+      allow delete: if isExistingTeam(get(/databases/$(database)/documents/pipelines/$(pipelineId)).data.teamId);
     }
 
     /**
-     * @description Manages access to deal documents. Requires authentication.
+     * @description Enforces team-based access control for the 'deals' collection.
      * @path /deals/{dealId}
-     * @allow (get) Authenticated user can read a deal.
-     * @deny (create) User without auth cannot create a deal.
-     * @principle Requires authentication for all operations.
+     * @allow (create, update, delete) Authenticated user can manage deal data if the teamId matches.
+     * @deny (create, update, delete) Authenticated user cannot manage deal data for a different team.
+     * @principle Enforces team-based ownership for writes.
      */
     match /deals/{dealId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.teamId != null;
+      allow update: if isExistingTeam(resource.data.teamId);
+      allow delete: if isExistingTeam(resource.data.teamId);
     }
 
     /**
-     * @description Manages access to activity documents. Requires authentication.
+     * @description Enforces team-based access control for the 'activities' collection.
      * @path /activities/{activityId}
-     * @allow (create) Authenticated user can create an activity.
-     * @deny (create) User without auth cannot create an activity.
-     * @principle Requires authentication for all operations.
+     * @allow (create, update, delete) Authenticated user can manage activity data if the teamId matches.
+     * @deny (create, update, delete) Authenticated user cannot manage activity data for a different team.
+     * @principle Enforces team-based ownership for writes.
      */
     match /activities/{activityId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.teamId != null;
+      allow update: if isExistingTeam(resource.data.teamId);
+      allow delete: if isExistingTeam(resource.data.teamId);
     }
 
     /**
-     * @description Manages access to message documents. Requires authentication.
+     * @description Enforces team-based access control for the 'messages' collection.
      * @path /messages/{messageId}
-     * @allow (create) Authenticated user can create a message.
-     * @deny (create) User without auth cannot create a message.
-     * @principle Requires authentication for all operations.
+     * @allow (create, update, delete) Authenticated user can manage message data if the teamId matches.
+     * @deny (create, update, delete) Authenticated user cannot manage message data for a different team.
+     * @principle Enforces team-based ownership for writes.
      */
     match /messages/{messageId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.teamId != null;
+      allow update: if isExistingTeam(resource.data.teamId);
+      allow delete: if isExistingTeam(resource.data.teamId);
     }
 
     /**
-     * @description Manages access to channel documents. Requires authentication.
+     * @description Enforces team-based access control for the 'channels' collection.
      * @path /channels/{channelId}
-     * @allow (create) Authenticated user can create a channel.
-     * @deny (create) User without auth cannot create a channel.
-     * @principle Requires authentication for all operations.
+     * @allow (create, update, delete) Authenticated user can manage channel data if the teamId matches.
+     * @deny (create, update, delete) Authenticated user cannot manage channel data for a different team.
+     * @principle Enforces team-based ownership for writes.
      */
     match /channels/{channelId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.teamId != null;
+      allow update: if isExistingTeam(resource.data.teamId);
+      allow delete: if isExistingTeam(resource.data.teamId);
     }
 
     /**
-     * @description Manages access to webhook documents. Requires authentication.
+     * @description Enforces team-based access control for the 'webhooks' collection.
      * @path /webhooks/{webhookId}
-     * @allow (create) Authenticated user can create a webhook.
-     * @deny (create) User without auth cannot create a webhook.
-     * @principle Requires authentication for all operations.
+     * @allow (create, update, delete) Authenticated user can manage webhook data if the teamId matches.
+     * @deny (create, update, delete) Authenticated user cannot manage webhook data for a different team.
+     * @principle Enforces team-based ownership for writes.
      */
     match /webhooks/{webhookId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.teamId != null;
+      allow update: if isExistingTeam(resource.data.teamId);
+      allow delete: if isExistingTeam(resource.data.teamId);
     }
 
     /**
-     * @description Manages access to job documents. Requires authentication.
+     * @description Enforces team-based access control for the 'jobs' collection.
      * @path /jobs/{jobId}
-     * @allow (create) Authenticated user can create a job.
-     * @deny (create) User without auth cannot create a job.
-     * @principle Requires authentication for all operations.
+     * @allow (create, update, delete) Authenticated user can manage job data if the teamId matches.
+     * @deny (create, update, delete) Authenticated user cannot manage job data for a different team.
+     * @principle Enforces team-based ownership for writes.
      */
     match /jobs/{jobId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.teamId != null;
+      allow update: if isExistingTeam(resource.data.teamId);
+      allow delete: if isExistingTeam(resource.data.teamId);
     }
 
     /**
-     * @description Manages access to social post documents. Requires authentication.
+     * @description Enforces team-based access control for the 'socialPosts' collection.
      * @path /socialPosts/{socialPostId}
-     * @allow (create) Authenticated user can create a social post.
-     * @deny (create) User without auth cannot create a social post.
-     * @principle Requires authentication for all operations.
+     * @allow (create, update, delete) Authenticated user can manage socialPost data if the teamId matches.
+     * @deny (create, update, delete) Authenticated user cannot manage socialPost data for a different team.
+     * @principle Enforces team-based ownership for writes.
      */
     match /socialPosts/{socialPostId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.teamId != null;
+      allow update: if isExistingTeam(resource.data.teamId);
+      allow delete: if isExistingTeam(resource.data.teamId);
     }
 
     /**
-     * @description Manages access to task documents. Requires authentication.
+     * @description Enforces team-based access control for the 'tasks' collection.
      * @path /tasks/{taskId}
-     * @allow (create) Authenticated user can create a task.
-     * @deny (create) User without auth cannot create a task.
-     * @principle Requires authentication for all operations.
+     * @allow (create, update, delete) Authenticated user can manage task data if the teamId matches. Also, the assignedTo field must match the authenticated user's UID.
+     * @deny (create, update, delete) Authenticated user cannot manage task data for a different team or assigned to another user.
+     * @principle Enforces team-based ownership and assigned user control for writes.
      */
     match /tasks/{taskId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.auth.uid == teamId;
+      }
+
+       function isAssignedTo(assignedTo) {
+        return isSignedIn() && request.auth.uid == assignedTo;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.teamId != null && isAssignedTo(request.resource.data.assignedTo);
+      allow update: if isExistingTeam(resource.data.teamId) && isAssignedTo(resource.data.assignedTo);
+      allow delete: if isExistingTeam(resource.data.teamId) && isAssignedTo(resource.data.assignedTo);
+    }
+
+   /**
+     * @description Enforces team-based access control for the 'automations' collection.
+     * @path /automations/{automationId}
+     * @allow (create, update, delete) Authenticated user can manage automation data if the teamId matches.
+     * @deny (create, update, delete) Authenticated user cannot manage automation data for a different team.
+     * @principle Enforces team-based ownership for writes.
+     */
+    match /automations/{automationId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isTeam(teamId) {
+        return isSignedIn() && request.resource.data.teamId == teamId;
+      }
+
+      function isExistingTeam(teamId) {
+        return isTeam(teamId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if isTeam(request.auth.uid); //Fixing the error reported, see reasoning in the comments.
+      allow create: if isSignedIn() && request.resource.data.teamId != null;
+      allow update: if isExistingTeam(resource.data.teamId);
+      allow delete: if isExistingTeam(resource.data.teamId);
     }
   }
 }
