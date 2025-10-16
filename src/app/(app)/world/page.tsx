@@ -13,9 +13,10 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Globe, ShoppingCart, Handshake, ToyBrick, Package, Users, Compass, Search, Bot, Zap, BrainCircuit, Link as LinkIcon, AlertCircle, FlaskConical, Beaker, GitMerge } from 'lucide-react';
+import { Globe, ShoppingCart, Handshake, ToyBrick, Package, Users, Compass, Search, Bot, Zap, BrainCircuit, Link as LinkIcon, AlertCircle, FlaskConical, Beaker, GitMerge, Projector } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 // --- HiperFlow OS Component ---
 const HiperFlowOS = () => {
@@ -208,6 +209,14 @@ const HiperFlowLab = () => (
 function WorldPageContent() {
   const searchParams = useSearchParams();
   const tab = searchParams.get('tab') || 'os';
+  const { toast } = useToast();
+
+  const handleShowcase = () => {
+    toast({
+        title: "Próximamente: Modo Demo IA",
+        description: "Esta funcionalidad está en desarrollo y pronto estará disponible.",
+    });
+  }
 
   return (
     <>
@@ -215,9 +224,15 @@ function WorldPageContent() {
         title="HiperFlow World"
         description="Descubre, conecta y expande tu mundo HiperFlow."
       >
-        <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar en el ecosistema..." className="pl-8" />
+        <div className="flex items-center gap-2">
+            <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Buscar en el ecosistema..." className="pl-8" />
+            </div>
+             <Button onClick={handleShowcase}>
+                <Projector className="mr-2 h-4 w-4" />
+                Demo IA
+            </Button>
         </div>
       </PageHeader>
       <p className="text-muted-foreground -mt-4 mb-8 text-sm md:text-base">
@@ -344,23 +359,23 @@ function WorldPageContent() {
               <CardTitle>Comunidad Global</CardTitle>
               <CardDescription>
                 Conecta con otros usuarios, comparte ideas y resuelve dudas.
-              </CardDescription>
+              </d
             </CardHeader>
             <CardContent>
               <p className="text-center text-muted-foreground p-8">Los foros de la comunidad estarán disponibles próximamente.</p>
             </CardContent>
           </Card>
         </TabsContent>
+
       </Tabs>
     </>
   );
 }
 
-
 export default function WorldPage() {
-    return (
-        <Suspense fallback={<div>Cargando...</div>}>
-            <WorldPageContent />
-        </Suspense>
-    )
+  return (
+    <Suspense fallback={<div>Cargando HiperFlow World...</div>}>
+      <WorldPageContent />
+    </Suspense>
+  );
 }
