@@ -80,7 +80,6 @@ const navItems = [
   { href: '/partners', label: 'Partners', icon: Handshake },
   { href: '/hiperdao', label: 'HiperDAO', icon: Group },
   { href: '/cloud', label: 'Cloud', icon: Cloud },
-  { href: '/publicar', label: 'Publicar', icon: UploadCloud },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
