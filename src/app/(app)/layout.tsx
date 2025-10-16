@@ -40,6 +40,9 @@ import {
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -157,6 +160,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </Button>
                 </SheetTrigger>
                 <SheetContent side="left">
+                    <SheetHeader>
+                      <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+                      <SheetDescription className="sr-only">Navegación principal de la aplicación HiperFlow.</SheetDescription>
+                    </SheetHeader>
                     <nav className="grid gap-6 text-base font-medium">
                         <Link
                             href="#"
