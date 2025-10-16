@@ -401,23 +401,17 @@ export default function InsightsPage() {
             <Popover>
                 <PopoverTrigger asChild>
                 <Button
-                    id="date"
+                    id="date-from"
                     variant={"outline"}
                     className={cn(
-                    "w-[300px] justify-start text-left font-normal",
+                    "w-[260px] justify-start text-left font-normal",
                     !date.from && "text-muted-foreground"
                     )}
                 >
                     <CalendarIcon className="mr-2 h-4 w-4" />
+                    {"Desde: "}
                     {date.from ? (
-                        date.to ? (
-                            <>
-                            {format(date.from, "d 'de' LLL", { locale: es })} -{" "}
-                            {format(date.to, "d 'de' LLL, y", { locale: es })}
-                            </>
-                        ) : (
-                            format(date.from, "d 'de' LLL, y", { locale: es })
-                        )
+                        format(date.from, "d 'de' LLL, y", { locale: es })
                         ) : (
                         <span>Elige una fecha</span>
                     )}
@@ -426,13 +420,46 @@ export default function InsightsPage() {
                 <PopoverContent className="w-auto p-0" align="end">
                 <Calendar
                     initialFocus
-                    mode="range"
+                    mode="single"
                     defaultMonth={date.from}
-                    selected={{ from: date.from, to: date.to }}
-                    onSelect={(range) => {
-                        setDate({ from: range?.from, to: range?.to });
+                    selected={date.from}
+                    onSelect={(selectedDate) => {
+                        setDate(prev => ({ ...prev, from: selectedDate }));
                     }}
-                    numberOfMonths={2}
+                    numberOfMonths={1}
+                    locale={es}
+                />
+                </PopoverContent>
+            </Popover>
+            <Popover>
+                <PopoverTrigger asChild>
+                <Button
+                    id="date-to"
+                    variant={"outline"}
+                    className={cn(
+                    "w-[260px] justify-start text-left font-normal",
+                    !date.to && "text-muted-foreground"
+                    )}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {"Hasta: "}
+                    {date.to ? (
+                        format(date.to, "d 'de' LLL, y", { locale: es })
+                        ) : (
+                        <span>Elige una fecha</span>
+                    )}
+                </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                    initialFocus
+                    mode="single"
+                    defaultMonth={date.to}
+                    selected={date.to}
+                    onSelect={(selectedDate) => {
+                        setDate(prev => ({ ...prev, to: selectedDate }));
+                    }}
+                    numberOfMonths={1}
                     locale={es}
                 />
                 </PopoverContent>
