@@ -35,7 +35,7 @@ import {
 } from '@/firebase';
 import { collection, doc, query, where, serverTimestamp } from 'firebase/firestore';
 import type { Contact, Company, Deal } from '@/lib/types';
-import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2, UserCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -90,6 +90,9 @@ const CustomerDetailPanel = ({
                 <SheetHeader className="mb-6 text-left">
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
+                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-muted">
+                            <UserCircle className="h-10 w-10 text-muted-foreground" />
+                        </div>
                         <div>
                             <SheetTitle className="text-2xl font-headline">{contact.name}</SheetTitle>
                             <SheetDescription className="text-muted-foreground">
@@ -314,7 +317,7 @@ export default function CustomersPage() {
         title="Clientes"
         description="Centraliza la información de tus clientes en un solo lugar, con historial, contexto y acciones conectadas."
       >
-        <Button onClick={() => setIsNewContactSheetOpen(true)}>
+        <Button onClick={() => { setEditingContact(null); setIsNewContactSheetOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" />
             Nuevo Cliente
         </Button>

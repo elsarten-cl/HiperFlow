@@ -35,7 +35,7 @@ const ConversationList = ({
           )}
         >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
-            <UserCircle />
+            <UserCircle className="h-6 w-6 text-muted-foreground" />
           </div>
           <div className="flex-1 overflow-hidden">
             <p className="font-semibold truncate">{contact.name}</p>
@@ -71,7 +71,7 @@ const MessageView = ({ conversation }: { conversation: Conversation | undefined 
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-4 p-4 border-b">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
-            <UserCircle />
+            <UserCircle className="h-6 w-6 text-muted-foreground" />
         </div>
         <div>
           <p className="font-semibold">{contact.name}</p>
