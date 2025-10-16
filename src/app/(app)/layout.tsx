@@ -74,7 +74,7 @@ const HiperFlowLogo = () => (
 );
 
 const navItems = [
-  { href: '/', label: 'OS', icon: Bot, exact: true },
+  { href: '/world', label: 'World', icon: Globe },
   { href: '/insights', label: 'Insights', icon: LineChart },
   { href: '/inbox', label: 'Inbox', icon: Mail },
   { href: '/agenda', label: 'Agenda', icon: ClipboardCheck },
@@ -83,8 +83,6 @@ const navItems = [
   { href: '/social', label: 'Social', icon: PenSquare },
   { href: '/commerce', label: 'Comercio', icon: Landmark },
   { href: '/partners', label: 'Partners', icon: Handshake },
-  { href: '/world', label: 'World', icon: Globe },
-  { href: '/lab', label: 'Lab', icon: FlaskConical },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
