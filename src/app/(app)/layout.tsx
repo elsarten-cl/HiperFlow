@@ -106,21 +106,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
-  const NavLink = ({ href, label, exact = false }: { href: string, label: string, exact?: boolean }) => {
-    const isActive = exact ? pathname === href : pathname.startsWith(href);
-    return (
-        <Link
-          href={href}
-          className={cn(
-            'transition-colors hover:text-primary text-sm font-medium',
-             isActive ? 'text-primary' : 'text-muted-foreground'
-          )}
-        >
-          {label}
-        </Link>
-    );
-  }
-
   const MobileNavLink = ({ href, label, icon: Icon, exact = false, onClick }: { href: string, label: string, icon: React.ElementType, exact?: boolean, onClick: () => void }) => {
     const isActive = exact ? pathname === href : pathname.startsWith(href);
     return (
@@ -143,20 +128,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen w-full flex-col">
        <FirebaseErrorListener />
         <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-50">
-           <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
-                <Link href="/" className="flex items-center gap-2 font-semibold font-headline text-lg md:text-base">
-                    <HiperFlowLogo className="h-6 w-auto" />
-                </Link>
-                 {navItems.map(({ href, label, exact }) => (
-                    <NavLink key={href} href={href} label={label} exact={exact} />
-                ))}
-           </nav>
            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
                     <Button
                     variant="outline"
                     size="icon"
-                    className="shrink-0 md:hidden"
+                    className="shrink-0"
                     >
                     <Menu className="h-5 w-5" />
                     <span className="sr-only">Toggle navigation menu</span>
@@ -169,8 +146,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </SheetHeader>
                     <nav className="grid gap-6 text-base font-medium">
                         <Link
-                            href="#"
-                            className="flex items-center gap-2 text-lg font-semibold"
+                            href="/"
+                            className="flex items-center gap-2 text-lg font-semibold mb-4"
+                             onClick={() => setIsMobileMenuOpen(false)}
                         >
                             <HiperFlowLogo className="h-6 w-auto" />
                         </Link>
@@ -187,6 +165,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </nav>
                 </SheetContent>
             </Sheet>
+
+            <Link href="/" className="flex items-center gap-2 font-semibold font-headline text-lg md:text-base">
+                <HiperFlowLogo className="h-6 w-auto" />
+            </Link>
+            
             <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
                 <div className="ml-auto flex-1 sm:flex-initial">
                     {/* Optional Search Bar */}
