@@ -40,8 +40,19 @@ import {
   Users,
   CheckCircle,
   TrendingUp,
+  Calendar as CalendarIcon,
 } from 'lucide-react';
-import { subDays } from 'date-fns';
+import { subDays, format } from 'date-fns';
+import { DateRange } from 'react-day-picker';
+import { es } from 'date-fns/locale';
+
+import { cn } from "@/lib/utils"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 
 const CHART_COLORS = {
   ganado: 'hsl(var(--chart-2))',
@@ -94,7 +105,10 @@ const KpiCard = ({
 };
 
 export default function InsightsPage() {
-  const [dateRange, setDateRange] = useState(30); // 'Últimos 30 días'
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: subDays(new Date(), 29),
+    to: new Date(),
+  });
   const firestore = useFirestore();
   const teamId = 'team-1'; // Hardcoded for now
 
@@ -122,13 +136,14 @@ export default function InsightsPage() {
   const { data: tasks, isLoading: isLoadingTasks } = useCollection<Task>(tasksRef);
 
   // --- Data Processing ---
-  const { kpis, evolutionData, stageDistribution } = useMemo(() => {
+  const { kpis, evolutionData, stageDistribution, dateRangeText } = useMemo(() => {
     if (!deals || !contacts || !tasks) {
-      return { kpis: {}, evolutionData: [], stageDistribution: [] };
+      return { kpis: {}, evolutionData: [], stageDistribution: [], dateRangeText: '' };
     }
 
-    const endDate = new Date();
-    const startDate = subDays(endDate, dateRange);
+    const startDate = dateRange?.from || new Date();
+    const endDate = dateRange?.to || new Date();
+    const dateRangeText = `${format(startDate, 'LLL dd, y')} - ${format(endDate, 'LLL dd, y')}`
 
     const filteredDeals = deals.filter(d => {
         const createdAt = (d.createdAt as Timestamp)?.toDate();
@@ -171,7 +186,7 @@ export default function InsightsPage() {
 
     const stageDistribution = Object.entries(stageDist).map(([name, value]) => ({ name, value, fill: CHART_COLORS[name as keyof typeof CHART_COLORS] || '#ccc' }));
 
-    return { kpis, evolutionData, stageDistribution };
+    return { kpis, evolutionData, stageDistribution, dateRangeText };
   }, [deals, contacts, tasks, dateRange]);
 
   const isLoading = isLoadingDeals || isLoadingContacts || isLoadingTasks;
@@ -182,10 +197,44 @@ export default function InsightsPage() {
         title="HiperFlow Insights"
         description="Convierte los datos de tu CRM en conocimiento. Visualiza tu progreso, mide tu rendimiento y optimiza tus resultados."
       >
-        <div className="flex items-center gap-2">
-            <Button variant={dateRange === 7 ? 'default' : 'outline'} onClick={() => setDateRange(7)}>7d</Button>
-            <Button variant={dateRange === 30 ? 'default' : 'outline'} onClick={() => setDateRange(30)}>30d</Button>
-            <Button variant={dateRange === 90 ? 'default' : 'outline'} onClick={() => setDateRange(90)}>90d</Button>
+        <div className="grid gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="date"
+                variant={"outline"}
+                className={cn(
+                  "w-[300px] justify-start text-left font-normal",
+                  !dateRange && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <>
+                      {format(dateRange.from, "LLL dd, y")} -{" "}
+                      {format(dateRange.to, "LLL dd, y")}
+                    </>
+                  ) : (
+                    format(dateRange.from, "LLL dd, y")
+                  )
+                ) : (
+                  <span>Elige una fecha</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+                locale={es}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </PageHeader>
 
@@ -224,7 +273,7 @@ export default function InsightsPage() {
           <CardHeader>
             <CardTitle>Evolución de Oportunidades</CardTitle>
             <CardDescription>
-              Resumen de oportunidades ganadas, perdidas y en negociación en los últimos {dateRange} días.
+             {`Resumen de oportunidades ganadas, perdidas y en negociación para el período: ${dateRangeText}`}
             </CardDescription>
           </CardHeader>
           <CardContent className="pl-2">
