@@ -100,3 +100,16 @@ export type Task = {
     createdAt: FieldValue | Timestamp;
     updatedAt: FieldValue | Timestamp;
 };
+
+export type Automation = {
+  id: string;
+  name: string;
+  teamId: string;
+  platform: 'make' | 'n8n' | 'other';
+  status: 'active' | 'inactive';
+  webhookUrl: string;
+  lastRun?: Timestamp | FieldValue;
+  lastRunStatus?: 'success' | 'error';
+  createdAt: Timestamp | FieldValue;
+  updatedAt: Timestamp | FieldValue;
+}

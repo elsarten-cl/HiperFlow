@@ -15,6 +15,7 @@ import {
   ClipboardCheck,
   LineChart,
   Settings,
+  Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -72,6 +73,7 @@ const navItems = [
   { href: '/customers', label: 'Clientes', icon: Users },
   { href: '/activities', label: 'Actividades', icon: History },
   { href: '/social', label: 'RRSS', icon: PenSquare },
+  { href: '/automations', label: 'Automatizaciones', icon: Zap },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
