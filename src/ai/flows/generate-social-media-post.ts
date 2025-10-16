@@ -37,7 +37,9 @@ const prompt = ai.definePrompt({
   name: 'generateSocialMediaPostPrompt',
   input: {schema: GenerateSocialMediaPostInputSchema},
   output: {schema: GenerateSocialMediaPostOutputSchema},
-  prompt: `You are a social media expert. Generate a social media post based on the following topic description: {{{topicDescription}}}.`,
+  prompt: `You are a social media expert. Generate a compelling and engaging social media post based on the following topic description. The post should be concise, professional, and ready to publish.
+  
+  Topic: {{{topicDescription}}}.`,
 });
 
 const generateSocialMediaPostFlow = ai.defineFlow(

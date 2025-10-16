@@ -54,9 +54,12 @@ export default function SocialPage() {
   return (
     <>
       <PageHeader
-        title="Programador Social con IA"
-        description="Genera y programa publicaciones atractivas para redes sociales con IA."
+        title="Social AI"
+        description="Crea, programa y automatiza tus publicaciones con inteligencia artificial. Desde una idea hasta un post completo, todo dentro de HiperFlow."
       />
+       <p className="text-muted-foreground -mt-4 mb-8 text-sm md:text-base">
+        Este módulo te permite generar contenido para Facebook, Instagram, LinkedIn o TikTok, programarlo, revisarlo con tu equipo y enviarlo automáticamente a tus redes mediante Make o n8n.
+      </p>
       <div className="grid gap-8 md:grid-cols-2">
         <Card>
           <CardHeader>

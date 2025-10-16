@@ -558,13 +558,24 @@
           "type": "string",
           "description": "Reference to Team. (Relationship: Team 1:N SocialPost). Specifies the team to which the social post belongs."
         },
-        "channelId": {
-          "type": "string",
-          "description": "Reference to Channel. (Relationship: Channel 1:N SocialPost). Specifies the social media channel to which the post will be published."
-        },
         "content": {
           "type": "string",
           "description": "Content of the social media post."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the image for the post.",
+          "format": "uri"
+        },
+        "targetPlatform": {
+          "type": "string",
+          "description": "The social media platform to which the post will be published.",
+          "enum": ["Facebook", "Instagram", "LinkedIn", "TikTok"]
+        },
+        "status": {
+            "type": "string",
+            "description": "The current status of the social post.",
+            "enum": ["draft", "scheduled", "published", "error"]
         },
         "scheduledAt": {
           "type": "string",
@@ -590,8 +601,10 @@
       "required": [
         "id",
         "teamId",
-        "channelId",
         "content",
+        "targetPlatform",
+        "status",
+        "scheduledAt",
         "createdAt",
         "updatedAt"
       ]

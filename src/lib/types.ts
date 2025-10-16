@@ -113,3 +113,19 @@ export type Automation = {
   createdAt: Timestamp | FieldValue;
   updatedAt: Timestamp | FieldValue;
 }
+
+export type SocialPostStatus = 'draft' | 'scheduled' | 'published' | 'error';
+export type SocialPostPlatform = 'Facebook' | 'Instagram' | 'LinkedIn' | 'TikTok';
+
+export type SocialPost = {
+  id: string;
+  teamId: string;
+  content: string;
+  imageUrl?: string;
+  targetPlatform: SocialPostPlatform;
+  status: SocialPostStatus;
+  scheduledAt: Timestamp | FieldValue;
+  publishedAt?: Timestamp | FieldValue;
+  createdAt: Timestamp | FieldValue;
+  updatedAt: Timestamp | FieldValue;
+};
