@@ -145,6 +145,39 @@ export type ClientProfile = {
   updatedAt: FieldValue | Timestamp;
 };
 
+export type DaoProposal = {
+    id: string;
+    authorId: string;
+    title: string;
+    category: 'new_module_integration' | 'economy_rewards_change' | 'strategic_alliance' | 'ethical_transparency_rule';
+    summary: string;
+    status: 'draft' | 'pending_validation' | 'active_voting' | 'approved' | 'rejected' | 'implemented' | 'archived';
+    createdAt: FieldValue | Timestamp;
+    votingStartsAt?: FieldValue | Timestamp;
+    votingEndsAt: FieldValue | Timestamp;
+    tokensStaked?: number;
+};
+
+export type DaoVote = {
+    id: string;
+    proposalId: string;
+    userId: string;
+    vote: 'yes' | 'no' | 'abstain';
+    tokensUsed: number;
+    votedAt: FieldValue | Timestamp;
+};
+
+export type DaoDecision = {
+    id: string;
+    proposalId: string;
+    result: 'approved' | 'rejected';
+    implementationOwner?: string;
+    decidedAt: FieldValue | Timestamp;
+    totalVotes?: number;
+    votesFor?: number;
+    votesAgainst?: number;
+};
+
 export type InfraUsage = {
   id: string;
   service: 'firestore' | 'functions' | 'storage' | 'hosting' | 'ai';
