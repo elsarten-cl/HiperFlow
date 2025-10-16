@@ -7,9 +7,11 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   ChartContainer,
   ChartTooltip,
@@ -41,9 +43,15 @@ import {
   CheckCircle,
   TrendingUp,
   Calendar as CalendarIcon,
+  Send,
+  Bot,
+  Lightbulb,
+  BookOpen,
 } from 'lucide-react';
 import { subDays, format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 
 import { cn } from "@/lib/utils"
 import { Calendar } from "@/components/ui/calendar"
@@ -52,6 +60,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 
 const CHART_COLORS = {
   ganado: 'hsl(var(--chart-2))',
@@ -103,7 +113,105 @@ const KpiCard = ({
   );
 };
 
-export default function InsightsPage() {
+
+const FlowAICopilot = () => {
+    const [messages, setMessages] = useState([
+    { role: 'assistant', content: 'Hola, soy tu FlowAI Copilot. ¿En qué puedo ayudarte hoy?' }
+  ]);
+  const [input, setInput] = useState('');
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const newMessages = [...messages, { role: 'user', content: input }];
+    setMessages(newMessages);
+    setInput('');
+
+    // Placeholder for AI response
+    setTimeout(() => {
+      setMessages(prev => [...prev, { role: 'assistant', content: "Actualmente estoy en desarrollo, pero pronto podré ayudarte a analizar tus datos, crear tareas y mucho más." }]);
+    }, 1000);
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
+      {/* Left Panel: Learning Center */}
+      <Card className="hidden lg:flex flex-col">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-6 w-6 text-primary" />
+            Aprende HiperFlow
+          </CardTitle>
+          <CardDescription>Guías y tutoriales para sacar el máximo provecho de tu CRM.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex-1 space-y-4">
+          <Input placeholder="¿Cómo hago para...?" />
+           <Separator />
+          <p className="text-sm text-muted-foreground italic text-center py-8">
+            El centro de aprendizaje se está construyendo.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Center Panel: Chat */}
+      <main className="lg:col-span-2 flex flex-col">
+        <Card className="flex-1 flex flex-col">
+          <CardContent className="p-0 flex-1 flex flex-col">
+            <ScrollArea className="flex-1 p-4">
+              <div className="space-y-4">
+                {messages.map((msg, index) => (
+                  <div key={index} className={cn("flex items-start gap-3", msg.role === 'user' ? 'justify-end' : '')}>
+                    {msg.role === 'assistant' && (
+                      <div className="bg-primary/20 p-2 rounded-full">
+                        <Bot className="h-6 w-6 text-primary" />
+                      </div>
+                    )}
+                    <div className={cn(
+                      "rounded-lg px-4 py-2 max-w-sm",
+                      msg.role === 'assistant' ? 'bg-card' : 'bg-primary text-primary-foreground'
+                    )}>
+                      <p className="text-sm">{msg.content}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            <form onSubmit={handleSendMessage} className="border-t p-4 flex items-center gap-2">
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Pregúntame cualquier cosa sobre tus ventas, clientes o tareas..."
+                className="flex-1"
+              />
+              <Button type="submit">
+                <Send className="h-4 w-4" />
+                <span className="sr-only">Enviar</span>
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </main>
+
+      {/* Right Panel: Recommendations (Placeholder on smaller screens) */}
+      <Card className="lg:hidden">
+         <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lightbulb className="h-6 w-6 text-yellow-400" />
+            Sugerencias IA
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+           <p className="text-sm text-muted-foreground italic text-center py-4">
+            Las sugerencias dinámicas aparecerán aquí.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+const MetricsDashboard = () => {
     const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 29));
     const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
   
@@ -191,70 +299,7 @@ export default function InsightsPage() {
 
   return (
     <>
-      <PageHeader
-        title="HiperFlow Insights"
-        description="Convierte los datos de tu CRM en conocimiento. Visualiza tu progreso, mide tu rendimiento y optimiza tus resultados."
-      >
-        <div className="flex items-center gap-4">
-            <Popover>
-                <PopoverTrigger asChild>
-                <Button
-                    id="dateFrom"
-                    variant={"outline"}
-                    className={cn(
-                    "w-[240px] justify-start text-left font-normal",
-                    !dateFrom && "text-muted-foreground"
-                    )}
-                >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFrom ? format(dateFrom, "d LLL, y", {locale: es}) : <span>Desde</span>}
-                </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                    initialFocus
-                    mode="single"
-                    selected={dateFrom}
-                    onSelect={setDateFrom}
-                    locale={es}
-                    disabled={(date) =>
-                        date > (dateTo || new Date()) || date < new Date("1900-01-01")
-                    }
-                />
-                </PopoverContent>
-            </Popover>
-
-            <Popover>
-                <PopoverTrigger asChild>
-                <Button
-                    id="dateTo"
-                    variant={"outline"}
-                    className={cn(
-                    "w-[240px] justify-start text-left font-normal",
-                    !dateTo && "text-muted-foreground"
-                    )}
-                >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateTo ? format(dateTo, "d LLL, y", {locale: es}) : <span>Hasta</span>}
-                </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                    initialFocus
-                    mode="single"
-                    selected={dateTo}
-                    onSelect={setDateTo}
-                    locale={es}
-                    disabled={(date) =>
-                        date < (dateFrom || new Date("1900-01-01"))
-                    }
-                />
-                </PopoverContent>
-            </Popover>
-        </div>
-      </PageHeader>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <KpiCard
           title="Ventas Totales"
           value={new Intl.NumberFormat('es-CL', {
@@ -338,6 +383,77 @@ export default function InsightsPage() {
           </CardContent>
         </Card>
       </div>
+    </>
+  );
+}
+
+
+export default function InsightsPage() {
+    const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 29));
+    const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+    
+  return (
+    <>
+      <PageHeader
+        title="HiperFlow Insights"
+        description="Convierte los datos de tu CRM en conocimiento. Visualiza tu progreso, mide tu rendimiento y optimiza tus resultados."
+      >
+        <div className="flex items-center gap-4">
+            <Popover>
+                <PopoverTrigger asChild>
+                <Button
+                    id="date"
+                    variant={"outline"}
+                    className={cn(
+                    "w-[300px] justify-start text-left font-normal",
+                    !dateFrom && "text-muted-foreground"
+                    )}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateFrom ? (
+                        dateTo ? (
+                            <>
+                            {format(dateFrom, "LLL dd, y")} -{" "}
+                            {format(dateTo, "LLL dd, y")}
+                            </>
+                        ) : (
+                            format(dateFrom, "LLL dd, y")
+                        )
+                        ) : (
+                        <span>Pick a date</span>
+                    )}
+                </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={dateFrom}
+                    selected={{ from: dateFrom, to: dateTo }}
+                    onSelect={(range) => {
+                        setDateFrom(range?.from);
+                        setDateTo(range?.to);
+                    }}
+                    numberOfMonths={2}
+                    locale={es}
+                />
+                </PopoverContent>
+            </Popover>
+        </div>
+      </PageHeader>
+      
+      <Tabs defaultValue="metrics" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="metrics">Métricas & KPIs</TabsTrigger>
+            <TabsTrigger value="flow-ai">FlowAI Copilot</TabsTrigger>
+        </TabsList>
+        <TabsContent value="metrics" className="mt-6">
+            <MetricsDashboard />
+        </TabsContent>
+        <TabsContent value="flow-ai" className="mt-6 h-[calc(100vh-20rem)]">
+            <FlowAICopilot />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
