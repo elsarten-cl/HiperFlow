@@ -73,7 +73,7 @@ const navItems = [
   { href: '/agenda', label: 'Agenda', icon: ClipboardCheck },
   { href: '/', label: 'SaleFlow', icon: LayoutGrid, exact: true },
   { href: '/customers', label: 'Clientes', icon: Users },
-  { href: '/activities', label: 'Actividades', icon: History },
+  { href: '/automations', label: 'Automations', icon: Zap },
   { href: '/social', label: 'Social', icon: PenSquare },
   { href: '/commerce', label: 'Comercio', icon: Landmark },
   { href: '/settings', label: 'Configuración', icon: Settings },
