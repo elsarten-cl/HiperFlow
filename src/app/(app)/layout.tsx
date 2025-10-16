@@ -46,6 +46,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser } from '@/firebase';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
@@ -142,30 +143,30 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         <span className="sr-only">Toggle navigation menu</span>
                         </Button>
                     </SheetTrigger>
-                    <SheetContent side="left">
-                        <SheetHeader>
-                        <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
-                        <SheetDescription className="sr-only">Navegación principal de la aplicación HiperFlow.</SheetDescription>
-                        </SheetHeader>
-                        <nav className="grid gap-6 text-base font-medium">
+                    <SheetContent side="left" className="flex flex-col p-0">
+                        <SheetHeader className="p-6 pb-0">
                             <Link
                                 href="/"
                                 className="flex items-center gap-2 text-lg font-semibold mb-4"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
-                                <HiperFlowLogo className="h-8 w-auto" />
+                                <HiperFlowLogo className="h-10 w-auto" />
                             </Link>
-                            {navItems.map(({ href, label, icon, exact }) => (
-                                <MobileNavLink 
-                                    key={href} 
-                                    href={href} 
-                                    label={label} 
-                                    icon={icon} 
-                                    exact={exact}
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                />
-                            ))}
-                        </nav>
+                        </SheetHeader>
+                        <ScrollArea className="flex-1">
+                            <nav className="grid gap-2 text-base font-medium p-6">
+                                {navItems.map(({ href, label, icon, exact }) => (
+                                    <MobileNavLink 
+                                        key={href} 
+                                        href={href} 
+                                        label={label} 
+                                        icon={icon} 
+                                        exact={exact}
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                    />
+                                ))}
+                            </nav>
+                        </ScrollArea>
                     </SheetContent>
                 </Sheet>
 
