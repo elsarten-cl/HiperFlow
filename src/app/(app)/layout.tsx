@@ -17,6 +17,7 @@ import {
   Settings,
   Bot,
   Zap,
+  Landmark,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -75,6 +76,7 @@ const navItems = [
   { href: '/customers', label: 'Clientes', icon: Users },
   { href: '/activities', label: 'Actividades', icon: History },
   { href: '/social', label: 'Social', icon: PenSquare },
+  { href: '/commerce', label: 'Comercio', icon: Landmark },
   { href: '/integrations', label: 'Integraciones', icon: Zap },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
