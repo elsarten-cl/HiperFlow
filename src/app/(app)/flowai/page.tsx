@@ -10,9 +10,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
-export default function CopilotPage() {
+export default function FlowAIPage() {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: 'Hola, soy tu HiperFlow Copilot. ¿En qué puedo ayudarte hoy?' }
+    { role: 'assistant', content: 'Hola, soy tu FlowAI Copilot. ¿En qué puedo ayudarte hoy?' }
   ]);
   const [input, setInput] = useState('');
 
@@ -53,7 +53,7 @@ export default function CopilotPage() {
       {/* Center Panel: Chat */}
       <main className="lg:col-span-2 flex flex-col">
         <PageHeader
-          title="HiperFlow Copilot"
+          title="FlowAI"
           description="Tu copiloto digital. Aprende, pregunta y automatiza con ayuda inteligente."
           className="mb-4"
         />

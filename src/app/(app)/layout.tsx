@@ -68,7 +68,7 @@ const HiperFlowLogo = () => (
 
 const navItems = [
   { href: '/insights', label: 'Insights', icon: LineChart },
-  { href: '/copilot', label: 'Copilot', icon: Bot },
+  { href: '/flowai', label: 'FlowAI', icon: Bot },
   { href: '/inbox', label: 'Inbox', icon: Mail },
   { href: '/agenda', label: 'Agenda', icon: ClipboardCheck },
   { href: '/', label: 'SaleFlow', icon: LayoutGrid, exact: true },
