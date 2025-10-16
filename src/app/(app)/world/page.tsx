@@ -107,108 +107,9 @@ const HiperFlowOS = () => {
     );
 }
 
-// --- HiperFlow Lab Component ---
-const HiperFlowLab = () => (
-    <Tabs defaultValue="ai-playground" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="ai-playground">
-                <Bot className="mr-2 h-4 w-4" />
-                AI Playground
-            </TabsTrigger>
-            <TabsTrigger value="automation-sandbox">
-                <Zap className="mr-2 h-4 w-4" />
-                Automation Sandbox
-            </TabsTrigger>
-            <TabsTrigger value="module-incubator">
-                <Beaker className="mr-2 h-4 w-4" />
-                Module Incubator
-            </TabsTrigger>
-            <TabsTrigger value="community-lab">
-                <Users className="mr-2 h-4 w-4" />
-                Open Innovation
-            </TabsTrigger>
-            <TabsTrigger value="roadmap">
-                <GitMerge className="mr-2 h-4 w-4" />
-                Roadmap Futuro
-            </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="ai-playground" className="mt-6">
-            <Card>
-                <CardHeader>
-                <CardTitle>Experimentación con IA</CardTitle>
-                <CardDescription>
-                    Prueba y compara diferentes modelos de IA, guarda prompts y prototipa funciones inteligentes.
-                </CardDescription>
-                </CardHeader>
-                <CardContent>
-                <p className="text-center text-muted-foreground p-8">El AI Playground estará disponible próximamente para experimentar con modelos de lenguaje.</p>
-                </CardContent>
-            </Card>
-        </TabsContent>
-
-        <TabsContent value="automation-sandbox" className="mt-6">
-            <Card>
-                <CardHeader>
-                <CardTitle>Sandbox de Flujos de Automatización</CardTitle>
-                <CardDescription>
-                    Diseña y prueba flujos de Make o n8n en un entorno seguro antes de pasarlos a producción.
-                </CardDescription>
-                </CardHeader>
-                <CardContent>
-                <p className="text-center text-muted-foreground p-8">El sandbox para flujos de automatización estará disponible próximamente.</p>
-                </CardContent>
-            </Card>
-        </TabsContent>
-        
-        <TabsContent value="module-incubator" className="mt-6">
-            <Card>
-                <CardHeader>
-                <CardTitle>Incubadora de Módulos</CardTitle>
-                <CardDescription>
-                    Prototipa, prueba y propone nuevos módulos para el ecosistema de HiperFlow.
-                </CardDescription>
-                </CardHeader>
-                <CardContent>
-                <p className="text-center text-muted-foreground p-8">La incubadora de módulos para desarrollo y prototipado estará disponible próximamente.</p>
-                </CardContent>
-            </Card>
-        </TabsContent>
-        
-        <TabsContent value="community-lab" className="mt-6">
-            <Card>
-                <CardHeader>
-                <CardTitle>Laboratorio de Innovación Abierta</CardTitle>
-                <CardDescription>
-                    Comparte ideas, vota por las mejores propuestas y colabora con la comunidad para construir el futuro.
-                </CardDescription>
-                </CardHeader>
-                <CardContent>
-                <p className="text-center text-muted-foreground p-8">El hub de innovación comunitaria estará disponible próximamente.</p>
-                </CardContent>
-            </Card>
-        </TabsContent>
-
-        <TabsContent value="roadmap" className="mt-6">
-            <Card>
-                <CardHeader>
-                <CardTitle>Roadmap de Desarrollo</CardTitle>
-                <CardDescription>
-                    Visualiza la línea de tiempo de los próximos lanzamientos, módulos y mejoras del ecosistema.
-                </CardDescription>
-                </CardHeader>
-                <CardContent>
-                <p className="text-center text-muted-foreground p-8">El roadmap interactivo del futuro de HiperFlow estará disponible próximamente.</p>
-                </CardContent>
-            </Card>
-        </TabsContent>
-    </Tabs>
-);
-
-
 function WorldPageContent() {
   const searchParams = useSearchParams();
-  const tab = searchParams.get('tab') || 'os';
+  const tab = searchParams.get('tab') || 'ecosystem';
   const { toast } = useToast();
 
   const handleShowcase = () => {
@@ -240,15 +141,7 @@ function WorldPageContent() {
       </p>
 
       <Tabs defaultValue={tab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="os">
-            <Bot className="mr-2 h-4 w-4" />
-            OS
-          </TabsTrigger>
-          <TabsTrigger value="lab">
-            <FlaskConical className="mr-2 h-4 w-4" />
-            Lab
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="ecosystem">
             <Compass className="mr-2 h-4 w-4" />
             Ecosistema
@@ -273,16 +166,12 @@ function WorldPageContent() {
             <Users className="mr-2 h-4 w-4" />
             Comunidad
           </TabsTrigger>
+          <TabsTrigger value="os">
+            <Bot className="mr-2 h-4 w-4" />
+            OS
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="os" className="mt-6">
-            <HiperFlowOS />
-        </TabsContent>
-
-        <TabsContent value="lab" className="mt-6">
-            <HiperFlowLab />
-        </TabsContent>
-        
         <TabsContent value="ecosystem" className="mt-6">
           <Card>
             <CardHeader>
@@ -362,9 +251,13 @@ function WorldPageContent() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-center text-muted-foreground p-8">Los foros de la comunidad estarán disponibles próximamente.</p>
+              <p className="text-center text-muted-foreground p-8">Los foros de la comunidad estarán disponible próximamente.</p>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="os" className="mt-6">
+            <HiperFlowOS />
         </TabsContent>
 
       </Tabs>

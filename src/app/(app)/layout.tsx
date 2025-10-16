@@ -75,6 +75,7 @@ const HiperFlowLogo = () => (
 
 const navItems = [
   { href: '/world', label: 'World', icon: Globe },
+  { href: '/lab', label: 'Lab', icon: FlaskConical },
   { href: '/insights', label: 'Insights', icon: LineChart },
   { href: '/inbox', label: 'Inbox', icon: Mail },
   { href: '/agenda', label: 'Agenda', icon: ClipboardCheck },
