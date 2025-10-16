@@ -385,7 +385,7 @@ const MetricsDashboard = ({ date, onDateChange }: { date: { from: Date | undefin
 }
 
 
-export default function InsightsPage() {
+export default function IntelligencePage() {
     const [date, setDate] = useState<{ from: Date | undefined, to: Date | undefined }>({
       from: subDays(new Date(), 29),
       to: new Date()
@@ -394,8 +394,8 @@ export default function InsightsPage() {
   return (
     <>
       <PageHeader
-        title="HiperFlow Insights"
-        description="Convierte los datos de tu CRM en conocimiento. Visualiza tu progreso, mide tu rendimiento y optimiza tus resultados."
+        title="HiperFlow Intelligence"
+        description="Conoce el pulso real de tu negocio. Analiza, predice y decide con datos en tiempo real impulsados por IA."
       >
         <div className="flex items-center gap-4">
             <Popover>
@@ -466,6 +466,9 @@ export default function InsightsPage() {
             </Popover>
         </div>
       </PageHeader>
+       <p className="text-muted-foreground -mt-4 mb-8 text-sm md:text-base">
+        Este módulo centraliza la información clave de tu CRM: ventas, clientes, campañas y actividades. Usa IA para identificar patrones, predecir resultados y sugerir acciones que mejoren tu rendimiento comercial.
+      </p>
       
       <Tabs defaultValue="metrics" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
