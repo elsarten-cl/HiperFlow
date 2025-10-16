@@ -11,13 +11,13 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Users, Bot, Zap, Beaker, GitMerge } from 'lucide-react';
+import { Users, Bot, Zap, Beaker, GitMerge, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // --- HiperFlow Lab Component ---
 const HiperFlowLab = () => (
   <Tabs defaultValue="ai-playground" className="w-full">
-    <TabsList className="grid w-full grid-cols-5">
+    <TabsList className="grid w-full grid-cols-6">
       <TabsTrigger value="ai-playground">
         <Bot className="mr-2 h-4 w-4" />
         AI Playground
@@ -37,6 +37,10 @@ const HiperFlowLab = () => (
       <TabsTrigger value="roadmap">
         <GitMerge className="mr-2 h-4 w-4" />
         Roadmap Futuro
+      </TabsTrigger>
+      <TabsTrigger value="certification">
+        <Award className="mr-2 h-4 w-4" />
+        Certificación
       </TabsTrigger>
     </TabsList>
 
@@ -109,6 +113,25 @@ const HiperFlowLab = () => (
         </CardContent>
       </Card>
     </TabsContent>
+
+    <TabsContent value="certification" className="mt-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Certificación HiperFlow Explorer</CardTitle>
+          <CardDescription>
+            Evalúa tu conocimiento y obtén tu certificado oficial de HiperFlow.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-center p-8 space-y-4">
+            <p className="text-muted-foreground">Demuestra tu dominio del ecosistema HiperFlow a través de una evaluación interactiva guiada por IA.</p>
+            <Button>
+                <Award className="mr-2 h-4 w-4" />
+                Iniciar Evaluación
+            </Button>
+        </CardContent>
+      </Card>
+    </TabsContent>
+
   </Tabs>
 );
 
