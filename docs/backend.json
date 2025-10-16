@@ -849,6 +849,36 @@
         "votesAgainst": { "type": "number" }
       },
       "required": ["id", "proposalId", "result", "decidedAt"]
+    },
+    "InfraUsage": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InfraUsage",
+      "type": "object",
+      "description": "Represents real-time consumption metrics for HiperFlow Cloud infrastructure.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the metric entry." },
+        "service": { "type": "string", "enum": ["firestore", "functions", "storage", "hosting", "ai"], "description": "The cloud service being measured." },
+        "metric": { "type": "string", "description": "The specific metric being recorded (e.g., 'reads', 'invocations', 'storage_bytes')." },
+        "value": { "type": "number", "description": "The value of the metric." },
+        "environment": { "type": "string", "enum": ["dev", "staging", "production"], "description": "The environment the metric belongs to." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Timestamp of the metric recording." }
+      },
+      "required": ["id", "service", "metric", "value", "environment", "timestamp"]
+    },
+    "InfraLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "InfraLog",
+      "type": "object",
+      "description": "Represents a log entry for infrastructure events like deployments, failures, and backups.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the log entry." },
+        "type": { "type": "string", "enum": ["deployment", "failure", "backup", "optimization"], "description": "The type of event being logged." },
+        "status": { "type": "string", "enum": ["success", "error", "in-progress"], "description": "The status of the event." },
+        "message": { "type": "string", "description": "A descriptive message for the log." },
+        "version": { "type": "string", "description": "The version associated with the event (e.g., for deployments)." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Timestamp of the log entry." }
+      },
+      "required": ["id", "type", "status", "message", "timestamp"]
     }
   },
   "auth": {
@@ -1144,6 +1174,24 @@
           "schema": { "$ref": "#/entities/DaoDecision" },
           "description": "Represents a finalized and audited decision from the HiperDAO.",
           "params": [{ "name": "decisionId", "description": "Unique identifier for the decision." }]
+        }
+      },
+       {
+        "path": "/infra_usage/{usageId}",
+        "definition": {
+          "entityName": "InfraUsage",
+          "schema": { "$ref": "#/entities/InfraUsage" },
+          "description": "Stores real-time infrastructure usage metrics.",
+          "params": [{ "name": "usageId", "description": "Unique identifier for the usage entry." }]
+        }
+      },
+      {
+        "path": "/infra_logs/{logId}",
+        "definition": {
+          "entityName": "InfraLog",
+          "schema": { "$ref": "#/entities/InfraLog" },
+          "description": "Stores logs for infrastructure events.",
+          "params": [{ "name": "logId", "description": "Unique identifier for the log entry." }]
         }
       }
     ],

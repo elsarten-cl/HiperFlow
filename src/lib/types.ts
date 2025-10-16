@@ -144,3 +144,21 @@ export type ClientProfile = {
   createdAt: FieldValue | Timestamp;
   updatedAt: FieldValue | Timestamp;
 };
+
+export type InfraUsage = {
+  id: string;
+  service: 'firestore' | 'functions' | 'storage' | 'hosting' | 'ai';
+  metric: string;
+  value: number;
+  environment: 'dev' | 'staging' | 'production';
+  timestamp: FieldValue | Timestamp;
+};
+
+export type InfraLog = {
+  id: string;
+  type: 'deployment' | 'failure' | 'backup' | 'optimization';
+  status: 'success' | 'error' | 'in-progress';
+  message: string;
+  version?: string;
+  timestamp: FieldValue | Timestamp;
+};

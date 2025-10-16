@@ -27,6 +27,7 @@ import {
   ShoppingCart,
   Trophy,
   Group,
+  Cloud,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -76,6 +77,7 @@ const navItems = [
   { href: '/commerce', label: 'Comercio', icon: Landmark },
   { href: '/partners', label: 'Partners', icon: Handshake },
   { href: '/hiperdao', label: 'HiperDAO', icon: Group },
+  { href: '/cloud', label: 'Cloud', icon: Cloud },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
@@ -168,7 +170,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </Sheet>
 
                 <Link href="/" className="flex items-center gap-2 font-semibold font-headline text-lg md:text-base">
-                    <HiperFlowLogo className="h-8 w-auto" />
+                    <HiperFlowLogo className="h-10 w-auto" />
                 </Link>
             </div>
             
