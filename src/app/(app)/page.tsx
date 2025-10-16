@@ -1,12 +1,19 @@
 
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bot, Zap, BrainCircuit, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function HiperFlowOSPage() {
+  const router = useRouter();
+
+  const handleGoToAutomations = () => {
+    router.push('/settings?tab=automations');
+  };
+
   return (
     <>
       <PageHeader
@@ -51,7 +58,7 @@ export default function HiperFlowOSPage() {
                         <p className="text-sm text-muted-foreground">El flujo "Sincronizar nuevos leads" ha fallado 3 veces.</p>
                     </div>
                 </div>
-                <Button variant="outline" size="sm">Ver Detalles</Button>
+                <Button variant="outline" size="sm" onClick={handleGoToAutomations}>Ver Detalles</Button>
             </div>
           </CardContent>
         </Card>
@@ -64,7 +71,7 @@ export default function HiperFlowOSPage() {
           </CardHeader>
           <CardContent>
             <p className="text-center text-muted-foreground p-4">La gestión de flujos estará disponible aquí.</p>
-            <Button className="w-full" variant="outline">Ir a Automations</Button>
+            <Button className="w-full" variant="outline" onClick={() => router.push('/settings?tab=automations')}>Ir a Automations</Button>
           </CardContent>
         </Card>
 
@@ -76,7 +83,7 @@ export default function HiperFlowOSPage() {
           </CardHeader>
           <CardContent>
             <p className="text-center text-muted-foreground p-4">La gestión de agentes IA estará disponible aquí.</p>
-             <Button className="w-full" variant="outline">Ir a Laboratorio IA</Button>
+             <Button className="w-full" variant="outline" onClick={() => router.push('/lab')}>Ir a Laboratorio IA</Button>
           </CardContent>
         </Card>
 
@@ -88,7 +95,7 @@ export default function HiperFlowOSPage() {
           </CardHeader>
           <CardContent>
             <p className="text-center text-muted-foreground p-4">El control de conexiones estará disponible aquí.</p>
-            <Button className="w-full" variant="outline">Ir a Conexiones</Button>
+            <Button className="w-full" variant="outline" onClick={() => router.push('/settings?tab=integrations')}>Ir a Conexiones</Button>
           </CardContent>
         </Card>
       </div>

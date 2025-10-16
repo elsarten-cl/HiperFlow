@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import React, { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PageHeader } from '@/components/page-header';
 import {
   Card,
@@ -639,8 +640,10 @@ const KingFlowSettings = () => {
     );
 };
 
+const SettingsPageContent = () => {
+  const searchParams = useSearchParams();
+  const tab = searchParams.get('tab') || 'appearance';
 
-export default function SettingsPage() {
   return (
     <>
       <PageHeader
@@ -648,7 +651,7 @@ export default function SettingsPage() {
         description="Adapta HiperFlow a tu forma de trabajar. Configura roles, permisos, notificaciones y estilo visual desde un solo lugar."
       />
 
-      <Tabs defaultValue="appearance" className="w-full">
+      <Tabs defaultValue={tab} className="w-full">
         <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="profile">Perfil</TabsTrigger>
           <TabsTrigger value="appearance">Apariencia</TabsTrigger>
@@ -715,5 +718,13 @@ export default function SettingsPage() {
         </TabsContent>
       </Tabs>
     </>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={<div>Cargando configuración...</div>}>
+      <SettingsPageContent />
+    </Suspense>
   );
 }
