@@ -22,21 +22,21 @@ export const conversations: Conversation[] = [
   {
     contactId: 'cont-1',
     messages: [
-      { id: 'msg-1-1', contactId: 'cont-1', content: 'Hola, ¿podemos agendar una demo para la próxima semana?', timestamp: '2024-05-23T10:00:00Z', direction: 'incoming', channel: 'Meta' },
-      { id: 'msg-1-2', contactId: 'cont-1', content: 'Claro, Alice. ¿Te parece bien el martes a las 14:00?', timestamp: '2024-05-23T10:05:00Z', direction: 'outgoing', channel: 'Meta' },
+      { id: 'msg-1-1', content: 'Hola, ¿podemos agendar una demo para la próxima semana?', timestamp: '2024-05-23T10:00:00Z', direction: 'incoming', channel: 'Meta' },
+      { id: 'msg-1-2', content: 'Claro, Alice. ¿Te parece bien el martes a las 14:00?', timestamp: '2024-05-23T10:05:00Z', direction: 'outgoing', channel: 'Meta' },
     ],
   },
   {
     contactId: 'cont-2',
     messages: [
-      { id: 'msg-2-1', contactId: 'cont-2', content: 'Dando seguimiento a nuestra llamada. Aquí está el documento de la propuesta.', timestamp: '2024-05-22T14:30:00Z', direction: 'outgoing', channel: 'WhatsApp' },
-      { id: 'msg-2-2', contactId: 'cont-2', content: 'Gracias, Bob. Lo revisaremos y te contactaremos.', timestamp: '2024-05-22T15:00:00Z', direction: 'incoming', channel: 'WhatsApp' },
+      { id: 'msg-2-1', content: 'Dando seguimiento a nuestra llamada. Aquí está el documento de la propuesta.', timestamp: '2024-05-22T14:30:00Z', direction: 'outgoing', channel: 'WhatsApp' },
+      { id: 'msg-2-2', content: 'Gracias, Bob. Lo revisaremos y te contactaremos.', timestamp: '2024-05-22T15:00:00Z', direction: 'incoming', channel: 'WhatsApp' },
     ],
   },
   {
     contactId: 'cont-3',
     messages: [
-      { id: 'msg-3-1', contactId: 'cont-3', content: 'Una pregunta rápida sobre la factura #5821.', timestamp: '2024-05-24T09:15:00Z', direction: 'incoming', channel: 'Meta' },
+      { id: 'msg-3-1', content: 'Una pregunta rápida sobre la factura #5821.', timestamp: '2024-05-24T09:15:00Z', direction: 'incoming', channel: 'Meta' },
     ],
   },
 ];

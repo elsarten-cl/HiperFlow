@@ -64,13 +64,13 @@ export type Activity = {
   type: 'Email' | 'Llamada' | 'Reunión' | 'Nota' | 'stageChange';
   contactId: string;
   dealId?: string;
-  timestamp: FieldValue | Timestamp;
+  timestamp: string | FieldValue | Timestamp;
   notes: string;
+  teamId: string;
 };
 
 export type Message = {
   id: string;
-  contactId: string;
   content: string;
   timestamp: string;
   direction: 'incoming' | 'outgoing';

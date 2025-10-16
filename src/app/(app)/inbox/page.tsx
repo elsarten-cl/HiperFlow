@@ -65,7 +65,7 @@ const MessageView = ({ conversation }: { conversation: Conversation | undefined 
     );
   }
   
-  const companyName = companyMap.get(contact.companyId);
+  const companyName = contact.companyId ? companyMap.get(contact.companyId) : '';
 
   return (
     <div className="flex h-full flex-col">

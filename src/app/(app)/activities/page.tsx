@@ -99,7 +99,7 @@ export default function ActivitiesPage() {
                  </TableRow>
               ) : (
                 activities && activities.map((activity) => {
-                const Icon = activityIcons[activity.type] || StickyNote;
+                const Icon = activity.type ? activityIcons[activity.type] : StickyNote;
                 return (
                   <TableRow key={activity.id}>
                     <TableCell>
@@ -109,7 +109,7 @@ export default function ActivitiesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      {contactMap.get(activity.contactId) || '-'}
+                      {activity.contactId ? contactMap.get(activity.contactId) : '-'}
                     </TableCell>
                     <TableCell>
                       {(activity.dealId && dealMap.get(activity.dealId)) || '-'}
