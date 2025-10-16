@@ -28,6 +28,7 @@ import {
   Trophy,
   Group,
   Cloud,
+  UploadCloud,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -79,6 +80,7 @@ const navItems = [
   { href: '/partners', label: 'Partners', icon: Handshake },
   { href: '/hiperdao', label: 'HiperDAO', icon: Group },
   { href: '/cloud', label: 'Cloud', icon: Cloud },
+  { href: '/publicar', label: 'Publicar', icon: UploadCloud },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
@@ -144,19 +146,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                         </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="flex flex-col p-0">
-                        <SheetHeader className="p-6 pb-0">
-                             <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
-                             <SheetDescription className="sr-only">Selecciona un módulo para navegar por la aplicación.</SheetDescription>
+                         <SheetHeader className="p-6 pb-4 border-b">
                             <Link
                                 href="/"
-                                className="flex items-center gap-2 text-lg font-semibold mb-4"
+                                className="flex items-center gap-2 text-lg font-semibold"
                                 onClick={() => setIsMobileMenuOpen(false)}
                             >
-                                <HiperFlowLogo className="h-10 w-auto" />
+                                <HiperFlowLogo className="h-10" />
                             </Link>
+                            <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+                            <SheetDescription className="sr-only">Selecciona un módulo para navegar por la aplicación.</SheetDescription>
                         </SheetHeader>
                         <ScrollArea className="flex-1">
-                            <nav className="grid gap-2 text-base font-medium p-6">
+                            <nav className="grid gap-2 text-base font-medium p-4">
                                 {navItems.map(({ href, label, icon, exact }) => (
                                     <MobileNavLink 
                                         key={href} 
@@ -172,7 +174,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </SheetContent>
                 </Sheet>
 
-                <Link href="/" className="flex items-center gap-2 font-semibold font-headline text-lg md:text-base">
+                <Link href="/" className="hidden md:flex items-center gap-2 font-semibold font-headline text-lg md:text-base">
                     <HiperFlowLogo className="h-12 w-auto" />
                 </Link>
             </div>
