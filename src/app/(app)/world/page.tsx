@@ -87,7 +87,7 @@ const HiperFlowOS = () => {
                 </CardHeader>
                 <CardContent>
                     <p className="text-center text-muted-foreground p-4">La gestión de agentes IA estará disponible aquí.</p>
-                    <Button className="w-full" variant="outline" onClick={() => router.push('/lab')}>Ir a Laboratorio IA</Button>
+                    <Button className="w-full" variant="outline" onClick={() => router.push('/settings?tab=hub')}>Ir a Hub</Button>
                 </CardContent>
                 </Card>
 
@@ -304,7 +304,7 @@ function WorldPageContent() {
               <CardDescription>
                 Explora y añade nuevas funcionalidades a tu CRM.
               </CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent>
                <p className="text-center text-muted-foreground p-8">El catálogo de herramientas y módulos estará disponible próximamente.</p>
             </CardContent>
@@ -318,7 +318,7 @@ function WorldPageContent() {
               <CardDescription>
                 Encuentra agencias y consultores certificados para ayudarte a crecer.
               </CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent>
               <p className="text-center text-muted-foreground p-8">El listado de partners estará disponible próximamente.</p>
             </CardContent>
@@ -332,7 +332,7 @@ function WorldPageContent() {
               <CardDescription>
                 Acelera tu trabajo con plantillas pre-diseñadas para flujos, reportes y más.
               </CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent>
               <p className="text-center text-muted-foreground p-8">La biblioteca de plantillas estará disponible próximamente.</p>
             </CardContent>
@@ -346,7 +346,7 @@ function WorldPageContent() {
               <CardDescription>
                 Conecta todas tus herramientas externas en un solo lugar.
               </CardDescription>
-            </Header>
+            </CardHeader>
             <CardContent>
               <p className="text-center text-muted-foreground p-8">El panel de integraciones estará disponible próximamente.</p>
             </CardContent>
@@ -359,7 +359,7 @@ function WorldPageContent() {
               <CardTitle>Comunidad Global</CardTitle>
               <CardDescription>
                 Conecta con otros usuarios, comparte ideas y resuelve dudas.
-              </d>
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-center text-muted-foreground p-8">Los foros de la comunidad estarán disponibles próximamente.</p>
