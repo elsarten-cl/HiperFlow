@@ -24,6 +24,7 @@ import {
   Globe,
   Shield,
   FlaskConical,
+  ShoppingCart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -75,6 +76,7 @@ const HiperFlowLogo = () => (
 
 const navItems = [
   { href: '/world', label: 'World', icon: Globe },
+  { href: '/marketplace', label: 'Marketplace', icon: ShoppingCart },
   { href: '/lab', label: 'Lab', icon: FlaskConical },
   { href: '/academy', label: 'Academy', icon: BookOpen },
   { href: '/insights', label: 'Insights', icon: LineChart },
