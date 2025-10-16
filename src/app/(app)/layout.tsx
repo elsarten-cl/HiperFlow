@@ -13,6 +13,7 @@ import {
   Menu,
   LogOut,
   ClipboardCheck,
+  LineChart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -69,6 +70,7 @@ const navItems = [
   { href: '/activities', label: 'Actividades', icon: History },
   { href: '/inbox', label: 'Inbox', icon: Mail },
   { href: '/social', label: 'RRSS', icon: PenSquare },
+  { href: '/insights', label: 'Insights', icon: LineChart },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
