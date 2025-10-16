@@ -28,6 +28,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'http',
+        hostname: 'hiperflow.app.elsartenpro.com',
+        port: '',
+        pathname: '/**',
+      }
     ],
   },
 };
