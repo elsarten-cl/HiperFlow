@@ -7,6 +7,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -433,6 +434,97 @@ function hexToHsl(hex: string): string {
 }
 
 
+const integrations = [
+  {
+    name: 'Google Workspace',
+    description: 'Sincroniza tu Calendario, Drive y Gmail.',
+    logo: '/google-logo.svg', // Placeholder
+    status: 'disconnected',
+  },
+  {
+    name: 'Meta Business Suite',
+    description: 'Conecta Facebook, Instagram y WhatsApp.',
+    logo: '/meta-logo.svg', // Placeholder
+    status: 'disconnected',
+  },
+  {
+    name: 'Shopify',
+    description: 'Importa clientes y pedidos de tu e-commerce.',
+    logo: '/shopify-logo.svg', // Placeholder
+    status: 'disconnected',
+  },
+  {
+    name: 'WooCommerce',
+    description: 'Sincroniza tu tienda online con HiperFlow.',
+    logo: '/woocommerce-logo.svg', // Placeholder
+    status: 'disconnected',
+  },
+  {
+    name: 'HubSpot',
+    description: 'Sincronización bidireccional de contactos.',
+    logo: '/hubspot-logo.svg', // Placeholder
+    status: 'disconnected',
+  },
+  {
+    name: 'Kommo CRM',
+    description: 'Conecta tus embudos de Kommo.',
+    logo: '/kommo-logo.svg', // Placeholder
+    status: 'disconnected',
+  },
+];
+
+const LogoPlaceholder = ({ name }: { name: string }) => (
+  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+    <span className="text-xs font-bold">{name.split(' ').map(n => n[0]).join('')}</span>
+  </div>
+);
+
+
+const IntegrationsSettings = () => {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Centro de Integraciones</CardTitle>
+                <CardDescription>
+                Conecta HiperFlow con tus plataformas favoritas. Sincroniza datos, automatiza campañas y gestiona todo tu ecosistema digital desde un solo lugar.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {integrations.map((integration) => (
+                <Card key={integration.name}>
+                    <CardHeader className="flex flex-row items-center gap-4">
+                    <LogoPlaceholder name={integration.name} />
+                    <div>
+                        <CardTitle className="text-lg">{integration.name}</CardTitle>
+                        <Badge variant={integration.status === 'connected' ? 'default' : 'outline'} className={integration.status === 'connected' ? 'bg-green-500/80' : ''}>
+                            {integration.status === 'connected' ? 'Conectado' : 'Desconectado'}
+                        </Badge>
+                    </div>
+                    </CardHeader>
+                    <CardContent>
+                    <p className="text-sm text-muted-foreground h-10">{integration.description}</p>
+                    </CardContent>
+                    <CardFooter>
+                    <Button variant="outline" className="w-full">
+                        {integration.status === 'connected' ? 'Administrar' : 'Conectar'}
+                    </Button>
+                    </CardFooter>
+                </Card>
+                ))}
+            </div>
+            </CardContent>
+             <CardFooter className="border-t pt-6">
+                <Button>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Solicitar Nueva Integración
+                </Button>
+            </CardFooter>
+        </Card>
+    )
+}
+
+
 export default function SettingsPage() {
   return (
     <>
@@ -442,12 +534,13 @@ export default function SettingsPage() {
       />
 
       <Tabs defaultValue="appearance" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="profile">Perfil</TabsTrigger>
           <TabsTrigger value="appearance">Apariencia</TabsTrigger>
           <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
           <TabsTrigger value="users">Usuarios & Roles</TabsTrigger>
           <TabsTrigger value="autoflow">AutoFlow</TabsTrigger>
+          <TabsTrigger value="integrations">Integraciones</TabsTrigger>
         </TabsList>
         <TabsContent value="profile">
           <Card>
@@ -493,6 +586,9 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="autoflow">
           <AutoFlowSettings />
+        </TabsContent>
+        <TabsContent value="integrations">
+            <IntegrationsSettings />
         </TabsContent>
       </Tabs>
     </>

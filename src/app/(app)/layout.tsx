@@ -77,7 +77,6 @@ const navItems = [
   { href: '/activities', label: 'Actividades', icon: History },
   { href: '/social', label: 'Social', icon: PenSquare },
   { href: '/commerce', label: 'Comercio', icon: Landmark },
-  { href: '/integrations', label: 'Integraciones', icon: Zap },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
