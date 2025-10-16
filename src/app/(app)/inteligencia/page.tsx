@@ -472,7 +472,7 @@ export default function IntelligencePage() {
       
       <Tabs defaultValue="metrics" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="metrics">Métricas & KPIs</TabsTrigger>
+            <TabsTrigger value="metrics">Métricas</TabsTrigger>
             <TabsTrigger value="flow-ai">FlowAI Copilot</TabsTrigger>
         </TabsList>
         <TabsContent value="metrics" className="mt-6">
