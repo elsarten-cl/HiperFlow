@@ -385,7 +385,7 @@ const MetricsDashboard = ({ date, onDateChange }: { date: { from: Date | undefin
 }
 
 
-export default function IntelligencePage() {
+export default function InsightsPage() {
     const [date, setDate] = useState<{ from: Date | undefined, to: Date | undefined }>({
       from: subDays(new Date(), 29),
       to: new Date()

@@ -68,7 +68,7 @@ const HiperFlowLogo = () => (
 );
 
 const navItems = [
-  { href: '/inteligencia', label: 'Inteligencia', icon: LineChart },
+  { href: '/insights', label: 'Insights', icon: LineChart },
   { href: '/inbox', label: 'Inbox', icon: Mail },
   { href: '/agenda', label: 'Agenda', icon: ClipboardCheck },
   { href: '/', label: 'SaleFlow', icon: LayoutGrid, exact: true },
