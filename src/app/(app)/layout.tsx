@@ -65,12 +65,12 @@ const HiperFlowLogo = () => (
 );
 
 const navItems = [
-  { href: '/', label: 'SaleFlow', icon: LayoutGrid, exact: true },
   { href: '/insights', label: 'Insights', icon: LineChart },
-  { href: '/customers', label: 'Clientes', icon: Users },
-  { href: '/agenda', label: 'Agenda', icon: ClipboardCheck },
-  { href: '/activities', label: 'Actividades', icon: History },
   { href: '/inbox', label: 'Inbox', icon: Mail },
+  { href: '/agenda', label: 'Agenda', icon: ClipboardCheck },
+  { href: '/', label: 'SaleFlow', icon: LayoutGrid, exact: true },
+  { href: '/customers', label: 'Clientes', icon: Users },
+  { href: '/activities', label: 'Actividades', icon: History },
   { href: '/social', label: 'RRSS', icon: PenSquare },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
@@ -107,8 +107,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <Link
           href={href}
           className={cn(
-            'transition-colors hover:text-foreground text-sm font-medium',
-             isActive ? 'text-foreground' : 'text-muted-foreground'
+            'transition-colors hover:text-primary text-sm font-medium',
+             isActive ? 'text-primary' : 'text-muted-foreground'
           )}
         >
           {label}
