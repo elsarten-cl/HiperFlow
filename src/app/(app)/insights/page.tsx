@@ -143,7 +143,7 @@ export default function InsightsPage() {
 
     const startDate = dateRange?.from || new Date();
     const endDate = dateRange?.to || new Date();
-    const dateRangeText = `${format(startDate, 'LLL dd, y')} - ${format(endDate, 'LLL dd, y')}`
+    const dateRangeText = `${format(startDate, 'd LLL, y', { locale: es })} - ${format(endDate, 'd LLL, y', { locale: es })}`
 
     const filteredDeals = deals.filter(d => {
         const createdAt = (d.createdAt as Timestamp)?.toDate();
@@ -212,11 +212,11 @@ export default function InsightsPage() {
                 {dateRange?.from ? (
                   dateRange.to ? (
                     <>
-                      {format(dateRange.from, "LLL dd, y")} -{" "}
-                      {format(dateRange.to, "LLL dd, y")}
+                      {format(dateRange.from, "d LLL, y", { locale: es })} -{" "}
+                      {format(dateRange.to, "d LLL, y", { locale: es })}
                     </>
                   ) : (
-                    format(dateRange.from, "LLL dd, y")
+                    format(dateRange.from, "d LLL, y", { locale: es })
                   )
                 ) : (
                   <span>Elige una fecha</span>
