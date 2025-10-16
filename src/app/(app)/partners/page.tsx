@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const KpiCard = ({ title, value, icon: Icon }: { title: string; value: string; icon: React.ElementType; }) => (
     <Card>
@@ -50,13 +51,16 @@ export default function PartnersPage() {
       </p>
 
       <Tabs defaultValue="dashboard" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="referrals">Referidos</TabsTrigger>
-          <TabsTrigger value="program">Programas</TabsTrigger>
-          <TabsTrigger value="toolkit">Recursos</TabsTrigger>
-          <TabsTrigger value="network">Red de Partners</TabsTrigger>
-        </TabsList>
+        <ScrollArea>
+            <TabsList className="grid w-full max-w-full grid-flow-col">
+              <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+              <TabsTrigger value="referrals">Referidos</TabsTrigger>
+              <TabsTrigger value="program">Programas</TabsTrigger>
+              <TabsTrigger value="toolkit">Recursos</TabsTrigger>
+              <TabsTrigger value="network">Red de Partners</TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
         
         <TabsContent value="dashboard" className="mt-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

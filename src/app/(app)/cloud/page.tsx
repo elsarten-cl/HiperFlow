@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Circle, Map, GitBranch, Bell, Shield, CloudCog, HardDrive, Cpu, Database, Wallet, GitPullRequest, ArrowRight } from 'lucide-react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const KpiCard = ({ title, value, icon: Icon, status }: { title: string; value: string; icon: React.ElementType; status?: 'ok' | 'warn' | 'error' }) => {
   const statusColors = {
@@ -62,13 +63,16 @@ const HiperFlowCloudPage = () => {
             </p>
 
             <Tabs defaultValue="dashboard" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="dashboard">Panel Global</TabsTrigger>
-                    <TabsTrigger value="costs">Control de Costos</TabsTrigger>
-                    <TabsTrigger value="cicd">CI/CD</TabsTrigger>
-                    <TabsTrigger value="security">Seguridad y Backups</TabsTrigger>
-                    <TabsTrigger value="scaling">Escalabilidad</TabsTrigger>
-                </TabsList>
+                <ScrollArea>
+                    <TabsList className="grid w-full max-w-full grid-flow-col">
+                        <TabsTrigger value="dashboard">Panel Global</TabsTrigger>
+                        <TabsTrigger value="costs">Control de Costos</TabsTrigger>
+                        <TabsTrigger value="cicd">CI/CD</TabsTrigger>
+                        <TabsTrigger value="security">Seguridad y Backups</TabsTrigger>
+                        <TabsTrigger value="scaling">Escalabilidad</TabsTrigger>
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
 
                 <TabsContent value="dashboard" className="mt-6 space-y-6">
                     <Card>

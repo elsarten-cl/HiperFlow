@@ -20,6 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 export default function CommercePage() {
   return (
@@ -38,21 +39,24 @@ export default function CommercePage() {
       </p>
 
       <Tabs defaultValue="quotes" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="quotes">
-            <FileText className="mr-2 h-4 w-4" />
-            Cotizaciones
-          </TabsTrigger>
-          <TabsTrigger value="invoices">
-            <Receipt className="mr-2 h-4 w-4" />
-            Facturas y Boletas
-          </TabsTrigger>
-          <TabsTrigger value="payments">
-            <CreditCard className="mr-2 h-4 w-4" />
-            Pagos
-          </TabsTrigger>
-          <TabsTrigger value="settings">Configuración</TabsTrigger>
-        </TabsList>
+        <ScrollArea>
+            <TabsList className="grid w-full max-w-full grid-flow-col">
+              <TabsTrigger value="quotes">
+                <FileText className="mr-2 h-4 w-4" />
+                Cotizaciones
+              </TabsTrigger>
+              <TabsTrigger value="invoices">
+                <Receipt className="mr-2 h-4 w-4" />
+                Facturas y Boletas
+              </TabsTrigger>
+              <TabsTrigger value="payments">
+                <CreditCard className="mr-2 h-4 w-4" />
+                Pagos
+              </TabsTrigger>
+              <TabsTrigger value="settings">Configuración</TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
         
         <TabsContent value="quotes">
           <Card>

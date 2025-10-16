@@ -13,36 +13,40 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Users, Bot, Zap, Beaker, GitMerge, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 // --- HiperFlow Lab Component ---
 const HiperFlowLab = () => (
   <Tabs defaultValue="ai-playground" className="w-full">
-    <TabsList className="grid w-full grid-cols-6">
-      <TabsTrigger value="ai-playground">
-        <Bot className="mr-2 h-4 w-4" />
-        AI Playground
-      </TabsTrigger>
-      <TabsTrigger value="automation-sandbox">
-        <Zap className="mr-2 h-4 w-4" />
-        Automation Sandbox
-      </TabsTrigger>
-      <TabsTrigger value="module-incubator">
-        <Beaker className="mr-2 h-4 w-4" />
-        Module Incubator
-      </TabsTrigger>
-      <TabsTrigger value="community-lab">
-        <Users className="mr-2 h-4 w-4" />
-        Open Innovation
-      </TabsTrigger>
-      <TabsTrigger value="roadmap">
-        <GitMerge className="mr-2 h-4 w-4" />
-        Roadmap Futuro
-      </TabsTrigger>
-      <TabsTrigger value="certification">
-        <Award className="mr-2 h-4 w-4" />
-        Certificación
-      </TabsTrigger>
-    </TabsList>
+    <ScrollArea>
+        <TabsList className="grid w-full max-w-full grid-flow-col">
+          <TabsTrigger value="ai-playground">
+            <Bot className="mr-2 h-4 w-4" />
+            AI Playground
+          </TabsTrigger>
+          <TabsTrigger value="automation-sandbox">
+            <Zap className="mr-2 h-4 w-4" />
+            Automation Sandbox
+          </TabsTrigger>
+          <TabsTrigger value="module-incubator">
+            <Beaker className="mr-2 h-4 w-4" />
+            Module Incubator
+          </TabsTrigger>
+          <TabsTrigger value="community-lab">
+            <Users className="mr-2 h-4 w-4" />
+            Open Innovation
+          </TabsTrigger>
+          <TabsTrigger value="roadmap">
+            <GitMerge className="mr-2 h-4 w-4" />
+            Roadmap Futuro
+          </TabsTrigger>
+          <TabsTrigger value="certification">
+            <Award className="mr-2 h-4 w-4" />
+            Certificación
+          </TabsTrigger>
+        </TabsList>
+        <ScrollBar orientation="horizontal" />
+    </ScrollArea>
 
     <TabsContent value="ai-playground" className="mt-6">
       <Card>

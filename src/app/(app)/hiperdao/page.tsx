@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -12,6 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Plus, Archive, ShieldCheck, Trophy, List, Bot } from 'lucide-react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const HiperDAOPage = () => {
     return (
@@ -30,28 +32,31 @@ const HiperDAOPage = () => {
             </p>
 
             <Tabs defaultValue="proposals" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="proposals">
-                        <List className="mr-2 h-4 w-4" />
-                        Propuestas
-                    </TabsTrigger>
-                    <TabsTrigger value="voting">
-                        <Trophy className="mr-2 h-4 w-4" />
-                        Votaciones
-                    </TabsTrigger>
-                    <TabsTrigger value="ethics">
-                        <ShieldCheck className="mr-2 h-4 w-4" />
-                        Consejo Ético
-                    </TabsTrigger>
-                    <TabsTrigger value="ledger">
-                        <Archive className="mr-2 h-4 w-4" />
-                        HiperLedger
-                    </TabsTrigger>
-                    <TabsTrigger value="rewards">
-                        <Bot className="mr-2 h-4 w-4" />
-                        Recompensas
-                    </TabsTrigger>
-                </TabsList>
+                <ScrollArea>
+                    <TabsList className="grid w-full max-w-full grid-flow-col">
+                        <TabsTrigger value="proposals">
+                            <List className="mr-2 h-4 w-4" />
+                            Propuestas
+                        </TabsTrigger>
+                        <TabsTrigger value="voting">
+                            <Trophy className="mr-2 h-4 w-4" />
+                            Votaciones
+                        </TabsTrigger>
+                        <TabsTrigger value="ethics">
+                            <ShieldCheck className="mr-2 h-4 w-4" />
+                            Consejo Ético
+                        </TabsTrigger>
+                        <TabsTrigger value="ledger">
+                            <Archive className="mr-2 h-4 w-4" />
+                            HiperLedger
+                        </TabsTrigger>
+                        <TabsTrigger value="rewards">
+                            <Bot className="mr-2 h-4 w-4" />
+                            Recompensas
+                        </TabsTrigger>
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
 
                 <TabsContent value="proposals" className="mt-6">
                     <Card>

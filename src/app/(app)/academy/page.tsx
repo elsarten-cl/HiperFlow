@@ -13,6 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { GraduationCap, Edit, Award, Users, BarChart, Plus } from 'lucide-react';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 const AcademyPage = () => {
     return (
@@ -31,28 +32,31 @@ const AcademyPage = () => {
             </p>
 
             <Tabs defaultValue="learning-hub" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
-                    <TabsTrigger value="learning-hub">
-                        <GraduationCap className="mr-2 h-4 w-4" />
-                        Learning Hub
-                    </TabsTrigger>
-                    <TabsTrigger value="mentor-space">
-                        <Edit className="mr-2 h-4 w-4" />
-                        Mentor Space
-                    </TabsTrigger>
-                    <TabsTrigger value="accreditation">
-                        <Award className="mr-2 h-4 w-4" />
-                        Certificaciones
-                    </TabsTrigger>
-                    <TabsTrigger value="community">
-                        <Users className="mr-2 h-4 w-4" />
-                        Comunidad
-                    </TabsTrigger>
-                    <TabsTrigger value="dashboard">
-                        <BarChart className="mr-2 h-4 w-4" />
-                        Mi Progreso
-                    </TabsTrigger>
-                </TabsList>
+                <ScrollArea>
+                    <TabsList className="grid w-full max-w-full grid-flow-col">
+                        <TabsTrigger value="learning-hub">
+                            <GraduationCap className="mr-2 h-4 w-4" />
+                            Learning Hub
+                        </TabsTrigger>
+                        <TabsTrigger value="mentor-space">
+                            <Edit className="mr-2 h-4 w-4" />
+                            Mentor Space
+                        </TabsTrigger>
+                        <TabsTrigger value="accreditation">
+                            <Award className="mr-2 h-4 w-4" />
+                            Certificaciones
+                        </TabsTrigger>
+                        <TabsTrigger value="community">
+                            <Users className="mr-2 h-4 w-4" />
+                            Comunidad
+                        </TabsTrigger>
+                        <TabsTrigger value="dashboard">
+                            <BarChart className="mr-2 h-4 w-4" />
+                            Mi Progreso
+                        </TabsTrigger>
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
 
                 <TabsContent value="learning-hub" className="mt-6">
                     <Card>

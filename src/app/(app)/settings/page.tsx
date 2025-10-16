@@ -56,6 +56,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { AutomationForm } from '@/components/automation-form';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 
 // --- Components ---
@@ -420,24 +421,27 @@ const academyCourses = [
 const HubSettings = () => {
     return (
         <Tabs defaultValue="academy" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="academy">
-            <GraduationCap className="mr-2 h-4 w-4" />
-            Academia
-          </TabsTrigger>
-          <TabsTrigger value="support">
-            <LifeBuoy className="mr-2 h-4 w-4" />
-            Soporte Técnico
-          </TabsTrigger>
-          <TabsTrigger value="docs">
-            <BookCopy className="mr-2 h-4 w-4" />
-            Documentación
-          </TabsTrigger>
-          <TabsTrigger value="community">
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Comunidad
-          </TabsTrigger>
-        </TabsList>
+        <ScrollArea>
+            <TabsList className="grid w-full max-w-full grid-flow-col">
+              <TabsTrigger value="academy">
+                <GraduationCap className="mr-2 h-4 w-4" />
+                Academia
+              </TabsTrigger>
+              <TabsTrigger value="support">
+                <LifeBuoy className="mr-2 h-4 w-4" />
+                Soporte Técnico
+              </TabsTrigger>
+              <TabsTrigger value="docs">
+                <BookCopy className="mr-2 h-4 w-4" />
+                Documentación
+              </TabsTrigger>
+              <TabsTrigger value="community">
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Comunidad
+              </TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
         
         <TabsContent value="academy" className="mt-6">
           <Card>
@@ -561,24 +565,27 @@ const KingFlowSettings = () => {
                 Este módulo protege el corazón del ecosistema. Supervisa el uso ético de la información, la seguridad de los datos, las políticas medioambientales digitales y el cumplimiento normativo global, garantizando una operación transparente y responsable.
             </p>
             <Tabs defaultValue="compliance" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="compliance">
-                    <Shield className="mr-2 h-4 w-4" />
-                    Cumplimiento y Seguridad
-                </TabsTrigger>
-                <TabsTrigger value="ai-ethics">
-                    <Bot className="mr-2 h-4 w-4" />
-                    Ética IA
-                </TabsTrigger>
-                <TabsTrigger value="sustainability">
-                    <Leaf className="mr-2 h-4 w-4" />
-                    Sostenibilidad Digital
-                </TabsTrigger>
-                <TabsTrigger value="audit">
-                    <ListChecks className="mr-2 h-4 w-4" />
-                    Auditoría y Transparencia
-                </TabsTrigger>
-                </TabsList>
+                <ScrollArea>
+                    <TabsList className="grid w-full max-w-full grid-flow-col">
+                    <TabsTrigger value="compliance">
+                        <Shield className="mr-2 h-4 w-4" />
+                        Cumplimiento y Seguridad
+                    </TabsTrigger>
+                    <TabsTrigger value="ai-ethics">
+                        <Bot className="mr-2 h-4 w-4" />
+                        Ética IA
+                    </TabsTrigger>
+                    <TabsTrigger value="sustainability">
+                        <Leaf className="mr-2 h-4 w-4" />
+                        Sostenibilidad Digital
+                    </TabsTrigger>
+                    <TabsTrigger value="audit">
+                        <ListChecks className="mr-2 h-4 w-4" />
+                        Auditoría y Transparencia
+                    </TabsTrigger>
+                    </TabsList>
+                    <ScrollBar orientation="horizontal" />
+                </ScrollArea>
                 
                 <TabsContent value="compliance" className="mt-6">
                 <Card>
@@ -652,16 +659,19 @@ const SettingsPageContent = () => {
       />
 
       <Tabs defaultValue={tab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
-          <TabsTrigger value="profile">Perfil</TabsTrigger>
-          <TabsTrigger value="appearance">Apariencia</TabsTrigger>
-          <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
-          <TabsTrigger value="users">Usuarios & Roles</TabsTrigger>
-          <TabsTrigger value="integrations">Conexiones</TabsTrigger>
-          <TabsTrigger value="automations">Automations</TabsTrigger>
-          <TabsTrigger value="hub">Hub</TabsTrigger>
-          <TabsTrigger value="kingflow">KingFlow</TabsTrigger>
-        </TabsList>
+        <ScrollArea>
+            <TabsList className="grid w-full max-w-full grid-flow-col">
+              <TabsTrigger value="profile">Perfil</TabsTrigger>
+              <TabsTrigger value="appearance">Apariencia</TabsTrigger>
+              <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
+              <TabsTrigger value="users">Usuarios & Roles</TabsTrigger>
+              <TabsTrigger value="integrations">Conexiones</TabsTrigger>
+              <TabsTrigger value="automations">Automations</TabsTrigger>
+              <TabsTrigger value="hub">Hub</TabsTrigger>
+              <TabsTrigger value="kingflow">KingFlow</TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
         <TabsContent value="profile">
           <Card>
             <CardHeader>

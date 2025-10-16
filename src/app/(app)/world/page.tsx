@@ -17,6 +17,7 @@ import { Globe, ShoppingCart, Handshake, ToyBrick, Package, Users, Compass, Sear
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 
 // --- HiperFlow OS Component ---
 const HiperFlowOS = () => {
@@ -141,36 +142,39 @@ function WorldPageContent() {
       </p>
 
       <Tabs defaultValue={tab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
-          <TabsTrigger value="ecosystem">
-            <Compass className="mr-2 h-4 w-4" />
-            Ecosistema
-          </TabsTrigger>
-          <TabsTrigger value="marketplace">
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            Marketplace
-          </TabsTrigger>
-          <TabsTrigger value="partners">
-            <Handshake className="mr-2 h-4 w-4" />
-            Partners
-          </TabsTrigger>
-          <TabsTrigger value="templates">
-            <ToyBrick className="mr-2 h-4 w-4" />
-            Plantillas
-          </TabsTrigger>
-          <TabsTrigger value="integrations">
-            <Package className="mr-2 h-4 w-4" />
-            Integraciones
-          </TabsTrigger>
-          <TabsTrigger value="community">
-            <Users className="mr-2 h-4 w-4" />
-            Comunidad
-          </TabsTrigger>
-          <TabsTrigger value="os">
-            <Bot className="mr-2 h-4 w-4" />
-            OS
-          </TabsTrigger>
-        </TabsList>
+        <ScrollArea>
+            <TabsList className="grid w-full max-w-full grid-flow-col">
+              <TabsTrigger value="ecosystem">
+                <Compass className="mr-2 h-4 w-4" />
+                Ecosistema
+              </TabsTrigger>
+              <TabsTrigger value="marketplace">
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Marketplace
+              </TabsTrigger>
+              <TabsTrigger value="partners">
+                <Handshake className="mr-2 h-4 w-4" />
+                Partners
+              </TabsTrigger>
+              <TabsTrigger value="templates">
+                <ToyBrick className="mr-2 h-4 w-4" />
+                Plantillas
+              </TabsTrigger>
+              <TabsTrigger value="integrations">
+                <Package className="mr-2 h-4 w-4" />
+                Integraciones
+              </TabsTrigger>
+              <TabsTrigger value="community">
+                <Users className="mr-2 h-4 w-4" />
+                Comunidad
+              </TabsTrigger>
+              <TabsTrigger value="os">
+                <Bot className="mr-2 h-4 w-4" />
+                OS
+              </TabsTrigger>
+            </TabsList>
+            <ScrollBar orientation="horizontal" />
+        </ScrollArea>
 
         <TabsContent value="ecosystem" className="mt-6">
           <Card>
