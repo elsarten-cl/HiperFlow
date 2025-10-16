@@ -48,5 +48,5 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
-export { setDoc, addDoc, updateDoc, deleteDoc, collection, doc } from 'firebase/firestore';
+export { setDoc, addDoc, updateDoc, deleteDoc, collection, doc, getDoc, writeBatch } from 'firebase/firestore';
 export type { WithId } from './firestore/use-collection';

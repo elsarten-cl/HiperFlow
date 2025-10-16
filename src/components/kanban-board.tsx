@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { collection, query, where, doc, updateDoc, serverTimestamp, addDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, serverTimestamp, addDoc, Timestamp, getDoc, writeBatch } from 'firebase/firestore';
 import {
   useCollection,
   useFirestore,
@@ -117,36 +117,25 @@ const getTimestampAsDate = (timestamp: any): Date | null => {
         return isValid(d) ? d : null;
     }
     if (timestamp && typeof timestamp.seconds === 'number') {
-        // Handle Firestore Timestamp object
         const d = new Date(timestamp.seconds * 1000 + (timestamp.nanoseconds || 0) / 1000000);
         return isValid(d) ? d : null;
     }
     if (timestamp && typeof timestamp.toDate === 'function') {
-        // Handle older Firestore Timestamp objects
         const d = timestamp.toDate();
         return isValid(d) ? d : null;
     }
     return null;
 }
 
-// --- Webhook Trigger Function ---
-const triggerWebhook = async (webhookUrl: string, event: string, payload: any) => {
-  try {
-    await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        event: event,
-        data: payload,
-        triggeredAt: new Date().toISOString(),
-      }),
-    });
-    console.log(`Webhook for event '${event}' triggered successfully.`);
-  } catch (error) {
-    console.error(`Failed to trigger webhook for event '${event}':`, error);
+// Simple hash function for eventId
+const simpleHash = (str: string) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0; // Convert to 32bit integer
   }
+  return 'evt_' + Math.abs(hash).toString(16);
 };
 
 
@@ -325,15 +314,6 @@ export const KanbanBoard = () => {
   );
   const { data: deals, isLoading } = useCollection<Deal>(dealsRef);
 
-  const automationsRef = useMemoFirebase(
-    () =>
-      firestore
-        ? query(collection(firestore, 'automations'), where('teamId', '==', teamId), where('status', '==', 'active'))
-        : null,
-    [firestore, teamId]
-  );
-  const { data: automations } = useCollection<Automation>(automationsRef);
-
   const [activeDeal, setActiveDeal] = useState<WithId<Deal> | null>(null);
 
   const dealsByStage = useMemo(() => {
@@ -370,7 +350,7 @@ export const KanbanBoard = () => {
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveDeal(null);
     const { active, over } = event;
-    if (!over) return;
+    if (!over || !firestore || !user) return;
 
     const activeId = active.id;
     const overId = over.id;
@@ -383,54 +363,109 @@ export const KanbanBoard = () => {
     const dealToMove = active.data.current?.deal as WithId<Deal>;
     
     let newStage: DealStage | undefined;
-    
     const isOverAColumn = over.data.current?.type === 'Column';
-    if (isOverAColumn) {
-        newStage = over.id as DealStage;
-    }
-
+    if (isOverAColumn) newStage = over.id as DealStage;
+    
     const isOverADeal = over.data.current?.type === 'Deal';
-    if (isOverADeal) {
-        const overDeal = over.data.current?.deal as WithId<Deal>;
-        newStage = overDeal.stage;
-    }
+    if (isOverADeal) newStage = (over.data.current?.deal as WithId<Deal>).stage;
 
-
-    if (newStage && newStage !== dealToMove.stage && firestore && user) {
-        const dealRef = doc(firestore, 'deals', dealToMove.id);
-        const activitiesCollection = collection(firestore, 'activities');
-
-        const oldStageName = stageConfig[dealToMove.stage]?.name || dealToMove.stage;
-        const newStageName = stageConfig[newStage]?.name || newStage;
-        const activityNotes = `Cambio de etapa: ${oldStageName} -> ${newStageName} por ${user.email || 'usuario anónimo'}`;
-
-        await updateDoc(dealRef, { 
-            stage: newStage,
-            updatedAt: serverTimestamp(),
-            lastActivity: serverTimestamp(),
-        });
+    if (newStage && newStage !== dealToMove.stage) {
+        const timestamp = serverTimestamp();
+        const updatedAt = new Date().toISOString();
+        const eventId = simpleHash(`${dealToMove.id}-${updatedAt}`);
+        const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
         
-        await addDoc(activitiesCollection, {
-            type: 'stageChange',
-            notes: activityNotes,
-            timestamp: serverTimestamp(),
-            dealId: dealToMove.id,
-            contactId: dealToMove.contact?.id || '',
-            teamId: dealToMove.teamId,
-        });
+        try {
+            const outboxDoc = await getDoc(automationOutboxRef);
+            if (outboxDoc.exists() && outboxDoc.data()?.status === 'sent') {
+                console.log(`Event ${eventId} already sent. Skipping.`);
+                return;
+            }
 
-        // --- Trigger Webhook Logic ---
-        const eventName = `deal.stage.changed`;
-        const relevantAutomation = automations?.find(a => a.name.toLowerCase().includes(eventName));
-        
-        if (relevantAutomation) {
+            const batch = writeBatch(firestore);
+
+            // 1. Update the deal
+            const dealRef = doc(firestore, 'deals', dealToMove.id);
+            batch.update(dealRef, { 
+                stage: newStage,
+                updatedAt: timestamp,
+                lastActivity: timestamp,
+            });
+
+            // 2. Log activity
+            const activitiesCollection = collection(firestore, 'activities');
+            const oldStageName = stageConfig[dealToMove.stage]?.name || dealToMove.stage;
+            const newStageName = stageConfig[newStage]?.name || newStage;
+            const activityNotes = `Cambio de etapa: ${oldStageName} -> ${newStageName}`;
+            batch.set(doc(activitiesCollection), {
+                type: 'stageChange',
+                notes: activityNotes,
+                timestamp: timestamp,
+                dealId: dealToMove.id,
+                contactId: dealToMove.contact?.id || '',
+                teamId: dealToMove.teamId,
+                actor: user.email,
+            });
+            
+            // 3. Prepare for webhook
+            batch.set(automationOutboxRef, {
+                eventId: eventId,
+                dealId: dealToMove.id,
+                status: "pending",
+                createdAt: timestamp
+            });
+
+            await batch.commit();
+
+            // 4. Send webhook (after DB transaction succeeds)
+            const webhookUrl = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
+            const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
+
             const payload = {
-                ...dealToMove,
-                oldStage: dealToMove.stage,
+                eventType: "saleflow.stage.changed",
+                eventId: eventId,
+                dealId: dealToMove.id,
+                title: dealToMove.title,
+                description: (dealToMove as any).description || null,
+                previousStage: dealToMove.stage,
                 newStage: newStage,
-                changedBy: user.email,
+                value: dealToMove.amount,
+                currency: dealToMove.currency,
+                clientName: dealToMove.contact?.name,
+                companyName: dealToMove.company?.name,
+                contactEmail: dealToMove.contact?.email,
+                ownerUserId: dealToMove.ownerId,
+                ownerEmail: user.email,
+                createdAt: getTimestampAsDate(dealToMove.createdAt)?.toISOString(),
+                updatedAt: updatedAt,
+                appUrl: `${appBaseUrl}/saleflow?dealId=${dealToMove.id}`
             };
-            await triggerWebhook(relevantAutomation.webhookUrl, eventName, payload);
+
+            const startTime = Date.now();
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const responseTimeMs = Date.now() - startTime;
+
+            await updateDoc(automationOutboxRef, {
+                status: response.ok ? 'sent' : 'failed',
+                payload: payload,
+                responseStatus: response.status,
+                responseTimeMs: responseTimeMs,
+                lastAttempt: serverTimestamp()
+            });
+
+        } catch (error) {
+            console.error("Error processing stage change automation:", error);
+            if (error instanceof Error) {
+                await updateDoc(automationOutboxRef, {
+                    status: 'failed',
+                    lastError: error.message,
+                    lastAttempt: serverTimestamp()
+                });
+            }
         }
     }
   };

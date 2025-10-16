@@ -67,6 +67,7 @@ export type Activity = {
   timestamp: string | FieldValue | Timestamp;
   notes: string;
   teamId: string;
+  actor?: string;
 };
 
 export type Message = {
@@ -195,3 +196,16 @@ export type InfraLog = {
   version?: string;
   timestamp: FieldValue | Timestamp;
 };
+
+export type AutomationOutbox = {
+    id: string; // eventId
+    dealId: string;
+    status: 'pending' | 'sent' | 'failed' | 'retrying';
+    createdAt: FieldValue | Timestamp;
+    lastAttempt?: FieldValue | Timestamp;
+    responseStatus?: number;
+    responseTimeMs?: number;
+    lastError?: string;
+    retryCount?: number;
+    payload?: any;
+}

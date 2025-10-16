@@ -330,7 +330,7 @@
         },
         "type": {
           "type": "string",
-          "description": "Type of activity (e.g., call, email, meeting)."
+          "description": "Type of activity (e.g., call, email, meeting, stageChange)."
         },
         "notes": {
           "type": "string",
@@ -341,10 +341,9 @@
           "description": "Timestamp indicating when the activity was created.",
           "format": "date-time"
         },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the activity was last updated.",
-          "format": "date-time"
+        "actor": {
+            "type": "string",
+            "description": "The user who performed the activity."
         }
       },
       "required": [
@@ -353,9 +352,60 @@
         "contactId",
         "type",
         "notes",
-        "createdAt",
-        "updatedAt"
+        "createdAt"
       ]
+    },
+    "AutomationOutbox": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AutomationOutbox",
+      "type": "object",
+      "description": "Logs outgoing webhook events to ensure idempotency and provide a trail for debugging.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the outbox event, typically a generated eventId."
+        },
+        "dealId": {
+          "type": "string",
+          "description": "The ID of the deal that triggered the event."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the webhook delivery.",
+          "enum": ["pending", "sent", "failed", "retrying"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the event was first created."
+        },
+        "lastAttempt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last delivery attempt."
+        },
+        "responseStatus": {
+          "type": "number",
+          "description": "The HTTP status code received from the webhook endpoint."
+        },
+        "responseTimeMs": {
+            "type": "number",
+            "description": "The time in milliseconds for the webhook to respond."
+        },
+        "lastError": {
+          "type": "string",
+          "description": "The last error message if the delivery failed."
+        },
+        "retryCount": {
+          "type": "number",
+          "description": "The number of retry attempts."
+        },
+        "payload": {
+            "type": "object",
+            "description": "The JSON payload sent to the webhook."
+        }
+      },
+      "required": ["id", "dealId", "status", "createdAt"]
     },
     "Message": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -1017,6 +1067,22 @@
             {
               "name": "activityId",
               "description": "Unique identifier for the activity."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/automation_outbox/{eventId}",
+        "definition": {
+          "entityName": "AutomationOutbox",
+          "schema": {
+            "$ref": "#/backend/entities/AutomationOutbox"
+          },
+          "description": "Logs outgoing webhook events for idempotency and debugging.",
+          "params": [
+            {
+              "name": "eventId",
+              "description": "Unique identifier for the event."
             }
           ]
         }
