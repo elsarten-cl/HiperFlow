@@ -74,10 +74,11 @@ const HiperFlowLogo = () => (
 );
 
 const navItems = [
+  { href: '/', label: 'OS', icon: Bot, exact: true },
   { href: '/insights', label: 'Insights', icon: LineChart },
   { href: '/inbox', label: 'Inbox', icon: Mail },
   { href: '/agenda', label: 'Agenda', icon: ClipboardCheck },
-  { href: '/', label: 'SaleFlow', icon: LayoutGrid, exact: true },
+  { href: '/saleflow', label: 'SaleFlow', icon: LayoutGrid },
   { href: '/customers', label: 'Clientes', icon: Users },
   { href: '/social', label: 'Social', icon: PenSquare },
   { href: '/commerce', label: 'Comercio', icon: Landmark },

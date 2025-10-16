@@ -1,116 +1,97 @@
+
 'use client';
 
-import { useState } from 'react';
-import { KanbanBoard } from '@/components/kanban-board';
 import { PageHeader } from '@/components/page-header';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Bot, Zap, BrainCircuit, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import { Plus } from 'lucide-react';
-import { DealForm } from '@/components/deal-form';
-import { useToast } from '@/hooks/use-toast';
-import {
-  useFirestore,
-  useUser,
-  addDocumentNonBlocking,
-  useCollection,
-  useMemoFirebase,
-  WithId,
-} from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
-import type { Contact, Company, Deal } from '@/lib/types';
 
-export default function DashboardPage() {
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const { toast } = useToast();
-  const firestore = useFirestore();
-  const { user } = useUser();
-
-  const contactsRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'contacts') : null),
-    [firestore]
-  );
-  const { data: contacts } = useCollection<WithId<Contact>>(contactsRef);
-
-  const companiesRef = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'companies') : null),
-    [firestore]
-  );
-  const { data: companies } = useCollection<WithId<Company>>(companiesRef);
-
-  const handleSaveDeal = (formData: Partial<Deal>) => {
-    if (!firestore || !user || !user.uid) {
-      toast({
-        title: 'Error',
-        description: 'No se puede guardar el flow. Usuario no autenticado.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const dealsCollection = collection(firestore, 'deals');
-    const newDeal: Omit<Deal, 'id'> = {
-      title: formData.title || 'Nuevo Flow',
-      teamId: 'team-1',
-      stage: 'potencial',
-      amount: formData.amount || 0,
-      currency: formData.currency || 'CLP',
-      contact: formData.contact,
-      company: formData.company,
-      lastActivity: serverTimestamp(),
-      ownerId: user.uid,
-      status: 'activo',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    };
-
-    addDocumentNonBlocking(dealsCollection, newDeal);
-
-    toast({
-      title: 'Flow Creado',
-      description: `${formData.title} ha sido agregado a tu flow de ventas.`,
-    });
-    setIsSheetOpen(false);
-  };
-
+export default function HiperFlowOSPage() {
   return (
     <>
       <PageHeader
-        title="SaleFlow"
-        description="Gestiona, visualiza y acelera tus oportunidades comerciales con claridad y precisión."
-      >
-        <Button onClick={() => setIsSheetOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo Flow
-        </Button>
-      </PageHeader>
+        title="HiperFlow OS"
+        description="El cerebro inteligente que coordina todo el ecosistema HiperFlow."
+      />
       <p className="text-muted-foreground -mt-4 mb-8 text-sm md:text-base">
-        Cada oportunidad representa un posible negocio. Muévela entre etapas según su avance y mantén el control total de tu SaleFlow.
+        Desde este centro de mando, puedes visualizar, coordinar y optimizar en tiempo real cada módulo, agente IA, flujo y conexión del ecosistema. HiperFlow OS convierte tus datos en decisiones, automatiza la coordinación entre áreas y aprende de cada interacción.
       </p>
-      
-      <KanbanBoard />
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-lg">
-          <SheetHeader>
-            <SheetTitle>Crear Nuevo Flow</SheetTitle>
-          </SheetHeader>
-          <div className="py-4">
-            <DealForm
-              onSave={handleSaveDeal}
-              onCancel={() => setIsSheetOpen(false)}
-              contacts={contacts || []}
-              companies={companies || []}
-            />
-          </div>
-        </SheetContent>
-      </Sheet>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+        {/* Capa de Observación Global */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Bot className="text-blue-400" /> Global Monitor</CardTitle>
+            <CardDescription>Vista panorámica del ecosistema en tiempo real.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div>
+                <p className="text-2xl font-bold">12</p>
+                <p className="text-sm text-muted-foreground">Usuarios Activos</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">8</p>
+                <p className="text-sm text-muted-foreground">Módulos en Ejecución</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">15</p>
+                <p className="text-sm text-muted-foreground">Flujos Activos</p>
+              </div>
+              <div>
+                <p className="text-2xl font-bold">6</p>
+                <p className="text-sm text-muted-foreground">Integraciones</p>
+              </div>
+            </div>
+             <div className="mt-6 p-4 bg-muted/50 rounded-lg flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <AlertCircle className="h-5 w-5 text-yellow-400" />
+                    <div>
+                        <p className="font-semibold">Alerta Inteligente</p>
+                        <p className="text-sm text-muted-foreground">El flujo "Sincronizar nuevos leads" ha fallado 3 veces.</p>
+                    </div>
+                </div>
+                <Button variant="outline" size="sm">Ver Detalles</Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Capa de Orquestación */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><Zap className="text-purple-400" /> Automation Control Center</CardTitle>
+            <CardDescription>Control centralizado de todas las automatizaciones.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-muted-foreground p-4">La gestión de flujos estará disponible aquí.</p>
+            <Button className="w-full" variant="outline">Ir a Automations</Button>
+          </CardContent>
+        </Card>
+
+        {/* Capa de Coordinación de IA */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><BrainCircuit className="text-green-400" /> AI Management Hub</CardTitle>
+            <CardDescription>Panel maestro para todos los agentes de IA integrados.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-muted-foreground p-4">La gestión de agentes IA estará disponible aquí.</p>
+             <Button className="w-full" variant="outline">Ir a Laboratorio IA</Button>
+          </CardContent>
+        </Card>
+
+        {/* Capa de Integración Universal */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><LinkIcon className="text-red-400" /> Connect & API Hub</CardTitle>
+            <CardDescription>Control centralizado de integraciones externas.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-center text-muted-foreground p-4">El control de conexiones estará disponible aquí.</p>
+            <Button className="w-full" variant="outline">Ir a Conexiones</Button>
+          </CardContent>
+        </Card>
+      </div>
     </>
   );
 }
-
-    
