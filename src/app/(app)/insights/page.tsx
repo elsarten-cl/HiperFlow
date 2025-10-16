@@ -211,10 +211,7 @@ const FlowAICopilot = () => {
   );
 }
 
-const MetricsDashboard = () => {
-    const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 29));
-    const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
-  
+const MetricsDashboard = ({ date, onDateChange }: { date: { from: Date | undefined; to: Date | undefined }, onDateChange: (date: { from: Date | undefined; to: Date | undefined }) => void}) => {
   const firestore = useFirestore();
   const teamId = 'team-1'; // Hardcoded for now
 
@@ -247,8 +244,8 @@ const MetricsDashboard = () => {
       return { kpis: {}, evolutionData: [], stageDistribution: [], dateRangeText: '' };
     }
 
-    const startDate = dateFrom || new Date(0);
-    const endDate = dateTo || new Date();
+    const startDate = date.from || new Date(0);
+    const endDate = date.to || new Date();
     const dateRangeText = `${format(startDate, 'd LLL, y', { locale: es })} - ${format(endDate, 'd LLL, y', { locale: es })}`
 
     const filteredDeals = deals.filter(d => {
@@ -293,7 +290,7 @@ const MetricsDashboard = () => {
     const stageDistribution = Object.entries(stageDist).map(([name, value]) => ({ name, value, fill: CHART_COLORS[name as keyof typeof CHART_COLORS] || '#ccc' }));
 
     return { kpis, evolutionData, stageDistribution, dateRangeText };
-  }, [deals, contacts, tasks, dateFrom, dateTo]);
+  }, [deals, contacts, tasks, date.from, date.to]);
 
   const isLoading = isLoadingDeals || isLoadingContacts || isLoadingTasks;
 
@@ -389,8 +386,10 @@ const MetricsDashboard = () => {
 
 
 export default function InsightsPage() {
-    const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 29));
-    const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+    const [date, setDate] = useState<{ from: Date | undefined, to: Date | undefined }>({
+      from: subDays(new Date(), 29),
+      to: new Date()
+    });
     
   return (
     <>
@@ -406,33 +405,32 @@ export default function InsightsPage() {
                     variant={"outline"}
                     className={cn(
                     "w-[300px] justify-start text-left font-normal",
-                    !dateFrom && "text-muted-foreground"
+                    !date.from && "text-muted-foreground"
                     )}
                 >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFrom ? (
-                        dateTo ? (
+                    {date.from ? (
+                        date.to ? (
                             <>
-                            {format(dateFrom, "LLL dd, y")} -{" "}
-                            {format(dateTo, "LLL dd, y")}
+                            {format(date.from, "d 'de' LLL", { locale: es })} -{" "}
+                            {format(date.to, "d 'de' LLL, y", { locale: es })}
                             </>
                         ) : (
-                            format(dateFrom, "LLL dd, y")
+                            format(date.from, "d 'de' LLL, y", { locale: es })
                         )
                         ) : (
-                        <span>Pick a date</span>
+                        <span>Elige una fecha</span>
                     )}
                 </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-auto p-0" align="end">
                 <Calendar
                     initialFocus
                     mode="range"
-                    defaultMonth={dateFrom}
-                    selected={{ from: dateFrom, to: dateTo }}
+                    defaultMonth={date.from}
+                    selected={{ from: date.from, to: date.to }}
                     onSelect={(range) => {
-                        setDateFrom(range?.from);
-                        setDateTo(range?.to);
+                        setDate({ from: range?.from, to: range?.to });
                     }}
                     numberOfMonths={2}
                     locale={es}
@@ -448,7 +446,7 @@ export default function InsightsPage() {
             <TabsTrigger value="flow-ai">FlowAI Copilot</TabsTrigger>
         </TabsList>
         <TabsContent value="metrics" className="mt-6">
-            <MetricsDashboard />
+            <MetricsDashboard date={date} onDateChange={setDate} />
         </TabsContent>
         <TabsContent value="flow-ai" className="mt-6 h-[calc(100vh-20rem)]">
             <FlowAICopilot />
