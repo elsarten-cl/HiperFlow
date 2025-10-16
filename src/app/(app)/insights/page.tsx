@@ -43,7 +43,6 @@ import {
   Calendar as CalendarIcon,
 } from 'lucide-react';
 import { subDays, format } from 'date-fns';
-import { DateRange } from 'react-day-picker';
 import { es } from 'date-fns/locale';
 
 import { cn } from "@/lib/utils"
@@ -105,10 +104,9 @@ const KpiCard = ({
 };
 
 export default function InsightsPage() {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: subDays(new Date(), 29),
-    to: new Date(),
-  });
+    const [dateFrom, setDateFrom] = useState<Date | undefined>(subDays(new Date(), 29));
+    const [dateTo, setDateTo] = useState<Date | undefined>(new Date());
+  
   const firestore = useFirestore();
   const teamId = 'team-1'; // Hardcoded for now
 
@@ -141,8 +139,8 @@ export default function InsightsPage() {
       return { kpis: {}, evolutionData: [], stageDistribution: [], dateRangeText: '' };
     }
 
-    const startDate = dateRange?.from || new Date();
-    const endDate = dateRange?.to || new Date();
+    const startDate = dateFrom || new Date(0);
+    const endDate = dateTo || new Date();
     const dateRangeText = `${format(startDate, 'd LLL, y', { locale: es })} - ${format(endDate, 'd LLL, y', { locale: es })}`
 
     const filteredDeals = deals.filter(d => {
@@ -187,7 +185,7 @@ export default function InsightsPage() {
     const stageDistribution = Object.entries(stageDist).map(([name, value]) => ({ name, value, fill: CHART_COLORS[name as keyof typeof CHART_COLORS] || '#ccc' }));
 
     return { kpis, evolutionData, stageDistribution, dateRangeText };
-  }, [deals, contacts, tasks, dateRange]);
+  }, [deals, contacts, tasks, dateFrom, dateTo]);
 
   const isLoading = isLoadingDeals || isLoadingContacts || isLoadingTasks;
 
@@ -197,44 +195,62 @@ export default function InsightsPage() {
         title="HiperFlow Insights"
         description="Convierte los datos de tu CRM en conocimiento. Visualiza tu progreso, mide tu rendimiento y optimiza tus resultados."
       >
-        <div className="grid gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                id="date"
-                variant={"outline"}
-                className={cn(
-                  "w-[300px] justify-start text-left font-normal",
-                  !dateRange && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, "d LLL, y", { locale: es })} -{" "}
-                      {format(dateRange.to, "d LLL, y", { locale: es })}
-                    </>
-                  ) : (
-                    format(dateRange.from, "d LLL, y", { locale: es })
-                  )
-                ) : (
-                  <span>Elige una fecha</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange}
-                onSelect={setDateRange}
-                numberOfMonths={2}
-                locale={es}
-              />
-            </PopoverContent>
-          </Popover>
+        <div className="flex items-center gap-4">
+            <Popover>
+                <PopoverTrigger asChild>
+                <Button
+                    id="dateFrom"
+                    variant={"outline"}
+                    className={cn(
+                    "w-[240px] justify-start text-left font-normal",
+                    !dateFrom && "text-muted-foreground"
+                    )}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateFrom ? format(dateFrom, "d LLL, y", {locale: es}) : <span>Desde</span>}
+                </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                    initialFocus
+                    mode="single"
+                    selected={dateFrom}
+                    onSelect={setDateFrom}
+                    locale={es}
+                    disabled={(date) =>
+                        date > (dateTo || new Date()) || date < new Date("1900-01-01")
+                    }
+                />
+                </PopoverContent>
+            </Popover>
+
+            <Popover>
+                <PopoverTrigger asChild>
+                <Button
+                    id="dateTo"
+                    variant={"outline"}
+                    className={cn(
+                    "w-[240px] justify-start text-left font-normal",
+                    !dateTo && "text-muted-foreground"
+                    )}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {dateTo ? format(dateTo, "d LLL, y", {locale: es}) : <span>Hasta</span>}
+                </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                    initialFocus
+                    mode="single"
+                    selected={dateTo}
+                    onSelect={setDateTo}
+                    locale={es}
+                    disabled={(date) =>
+                        date < (dateFrom || new Date("1900-01-01"))
+                    }
+                />
+                </PopoverContent>
+            </Popover>
         </div>
       </PageHeader>
 
