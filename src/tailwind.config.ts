@@ -11,7 +11,7 @@ export default {
     extend: {
       fontFamily: {
         body: ['Inter', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
+        headline: ['Stentiga', 'Space Grotesk', 'sans-serif'],
         code: ['"Source Code Pro"', 'monospace'],
       },
       colors: {
@@ -55,6 +55,11 @@ export default {
           '4': 'hsl(var(--chart-4))',
           '5': 'hsl(var(--chart-5))',
         },
+         dao: {
+          accent: 'hsl(var(--dao-accent))',
+          positive: 'hsl(var(--dao-positive))',
+          alert: 'hsl(var(--dao-alert))',
+        }
       },
       borderRadius: {
         lg: 'var(--radius)',

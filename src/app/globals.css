@@ -39,6 +39,10 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    --dao-accent: 195 100% 50%; /* #00CFFF - Neon Blue */
+    --dao-positive: 141 57% 45%; /* #0FAF3A - Deep Green */
+    --dao-alert: 45 100% 67%; /* #FFC857 - Amber */
   }
  
   .dark {

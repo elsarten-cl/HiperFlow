@@ -798,6 +798,57 @@
         }
       },
       "required": ["id", "contactId", "teamId", "createdAt", "updatedAt"]
+    },
+    "DaoProposal": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DAO Proposal",
+      "type": "object",
+      "description": "Represents a proposal within the HiperDAO governance module.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the proposal." },
+        "authorId": { "type": "string", "description": "User ID of the proposal creator." },
+        "title": { "type": "string", "description": "Title of the proposal." },
+        "category": { "type": "string", "enum": ["new_module_integration", "economy_rewards_change", "strategic_alliance", "ethical_transparency_rule"] },
+        "summary": { "type": "string", "description": "A short summary of the proposal." },
+        "status": { "type": "string", "enum": ["draft", "pending_validation", "active_voting", "approved", "rejected", "implemented", "archived"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "votingStartsAt": { "type": "string", "format": "date-time" },
+        "votingEndsAt": { "type": "string", "format": "date-time" },
+        "tokensStaked": { "type": "number", "description": "Amount of HFT staked by the author." }
+      },
+      "required": ["id", "authorId", "title", "category", "summary", "status", "createdAt", "votingEndsAt"]
+    },
+    "DaoVote": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DAO Vote",
+      "type": "object",
+      "description": "Represents a single vote on a DAO proposal.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the vote." },
+        "proposalId": { "type": "string", "description": "Reference to the DAO Proposal." },
+        "userId": { "type": "string", "description": "User ID of the voter." },
+        "vote": { "type": "string", "enum": ["yes", "no", "abstain"] },
+        "tokensUsed": { "type": "number", "description": "Amount of HFT used for voting power." },
+        "votedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "proposalId", "userId", "vote", "tokensUsed", "votedAt"]
+    },
+    "DaoDecision": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "DAO Decision",
+      "type": "object",
+      "description": "Represents the final, audited result of a DAO proposal.",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier for the decision, often same as proposalId." },
+        "proposalId": { "type": "string" },
+        "result": { "type": "string", "enum": ["approved", "rejected"] },
+        "implementationOwner": { "type": "string", "description": "User or team responsible for implementation." },
+        "decidedAt": { "type": "string", "format": "date-time" },
+        "totalVotes": { "type": "number" },
+        "votesFor": { "type": "number" },
+        "votesAgainst": { "type": "number" }
+      },
+      "required": ["id", "proposalId", "result", "decidedAt"]
     }
   },
   "auth": {
@@ -1066,6 +1117,33 @@
               "description": "Unique identifier for the client profile."
             }
           ]
+        }
+      },
+      {
+        "path": "/dao_proposals/{proposalId}",
+        "definition": {
+          "entityName": "DaoProposal",
+          "schema": { "$ref": "#/entities/DaoProposal" },
+          "description": "Represents a governance proposal in the HiperDAO.",
+          "params": [{ "name": "proposalId", "description": "Unique identifier for the proposal." }]
+        }
+      },
+      {
+        "path": "/dao_votes/{voteId}",
+        "definition": {
+          "entityName": "DaoVote",
+          "schema": { "$ref": "#/entities/DaoVote" },
+          "description": "Represents a vote on a HiperDAO proposal.",
+          "params": [{ "name": "voteId", "description": "Unique identifier for the vote." }]
+        }
+      },
+      {
+        "path": "/dao_decisions/{decisionId}",
+        "definition": {
+          "entityName": "DaoDecision",
+          "schema": { "$ref": "#/entities/DaoDecision" },
+          "description": "Represents a finalized and audited decision from the HiperDAO.",
+          "params": [{ "name": "decisionId", "description": "Unique identifier for the decision." }]
         }
       }
     ],

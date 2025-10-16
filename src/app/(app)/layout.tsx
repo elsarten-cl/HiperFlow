@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -27,6 +26,7 @@ import {
   FlaskConical,
   ShoppingCart,
   Trophy,
+  Group,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -75,6 +75,7 @@ const navItems = [
   { href: '/social', label: 'Social', icon: PenSquare },
   { href: '/commerce', label: 'Comercio', icon: Landmark },
   { href: '/partners', label: 'Partners', icon: Handshake },
+  { href: '/hiperdao', label: 'HiperDAO', icon: Group },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
