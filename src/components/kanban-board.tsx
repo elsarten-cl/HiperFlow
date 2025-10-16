@@ -9,7 +9,7 @@ import {
   useMemoFirebase,
   WithId,
 } from '@/firebase';
-import { type Deal, type DealStage } from '@/lib/types';
+import { type Deal, type DealStage, type Automation } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -128,6 +128,27 @@ const getTimestampAsDate = (timestamp: any): Date | null => {
     }
     return null;
 }
+
+// --- Webhook Trigger Function ---
+const triggerWebhook = async (webhookUrl: string, event: string, payload: any) => {
+  try {
+    await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        event: event,
+        data: payload,
+        triggeredAt: new Date().toISOString(),
+      }),
+    });
+    console.log(`Webhook for event '${event}' triggered successfully.`);
+  } catch (error) {
+    console.error(`Failed to trigger webhook for event '${event}':`, error);
+  }
+};
+
 
 const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
   const {
@@ -294,6 +315,7 @@ export const KanbanBoard = () => {
   const { user } = useUser();
   const teamId = 'team-1';
 
+  // --- Data Fetching ---
   const dealsRef = useMemoFirebase(
     () =>
       firestore
@@ -302,6 +324,16 @@ export const KanbanBoard = () => {
     [firestore, teamId]
   );
   const { data: deals, isLoading } = useCollection<Deal>(dealsRef);
+
+  const automationsRef = useMemoFirebase(
+    () =>
+      firestore
+        ? query(collection(firestore, 'automations'), where('teamId', '==', teamId), where('status', '==', 'active'))
+        : null,
+    [firestore, teamId]
+  );
+  const { data: automations } = useCollection<Automation>(automationsRef);
+
   const [activeDeal, setActiveDeal] = useState<WithId<Deal> | null>(null);
 
   const dealsByStage = useMemo(() => {
@@ -368,7 +400,9 @@ export const KanbanBoard = () => {
         const dealRef = doc(firestore, 'deals', dealToMove.id);
         const activitiesCollection = collection(firestore, 'activities');
 
-        const activityNotes = `Cambio de etapa: ${stageConfig[dealToMove.stage]?.name || dealToMove.stage} -> ${stageConfig[newStage]?.name || newStage} por ${user.email || 'usuario anónimo'}`;
+        const oldStageName = stageConfig[dealToMove.stage]?.name || dealToMove.stage;
+        const newStageName = stageConfig[newStage]?.name || newStage;
+        const activityNotes = `Cambio de etapa: ${oldStageName} -> ${newStageName} por ${user.email || 'usuario anónimo'}`;
 
         await updateDoc(dealRef, { 
             stage: newStage,
@@ -384,6 +418,20 @@ export const KanbanBoard = () => {
             contactId: dealToMove.contact?.id || '',
             teamId: dealToMove.teamId,
         });
+
+        // --- Trigger Webhook Logic ---
+        const eventName = `deal.stage.changed`;
+        const relevantAutomation = automations?.find(a => a.name.toLowerCase().includes(eventName));
+        
+        if (relevantAutomation) {
+            const payload = {
+                ...dealToMove,
+                oldStage: dealToMove.stage,
+                newStage: newStage,
+                changedBy: user.email,
+            };
+            await triggerWebhook(relevantAutomation.webhookUrl, eventName, payload);
+        }
     }
   };
 
