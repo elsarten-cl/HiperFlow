@@ -23,6 +23,7 @@ import {
   Handshake,
   Globe,
   Shield,
+  FlaskConical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -82,6 +83,7 @@ const navItems = [
   { href: '/commerce', label: 'Comercio', icon: Landmark },
   { href: '/partners', label: 'Partners', icon: Handshake },
   { href: '/world', label: 'World', icon: Globe },
+  { href: '/lab', label: 'Lab', icon: FlaskConical },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
