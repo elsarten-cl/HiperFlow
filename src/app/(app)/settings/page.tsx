@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -15,7 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Upload, Plus, MoreHorizontal, Zap, ExternalLink, LifeBuoy, BookCopy, MessageSquare, GraduationCap, Search } from 'lucide-react';
+import { Upload, Plus, MoreHorizontal, Zap, ExternalLink, LifeBuoy, BookCopy, MessageSquare, GraduationCap, Search, Shield, Bot, Leaf, ListChecks } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -548,6 +549,96 @@ const HubSettings = () => {
     )
 }
 
+const KingFlowSettings = () => {
+    return (
+        <>
+            <div className="mb-8">
+                <h2 className="text-2xl md:text-3xl font-bold font-headline tracking-tight">HiperFlow Governance</h2>
+                <p className="text-muted-foreground">Confianza, transparencia y sostenibilidad en cada interacción del ecosistema HiperFlow.</p>
+            </div>
+             <p className="text-muted-foreground -mt-4 mb-8 text-sm md:text-base">
+                Este módulo protege el corazón del ecosistema. Supervisa el uso ético de la información, la seguridad de los datos, las políticas medioambientales digitales y el cumplimiento normativo global, garantizando una operación transparente y responsable.
+            </p>
+            <Tabs defaultValue="compliance" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="compliance">
+                    <Shield className="mr-2 h-4 w-4" />
+                    Cumplimiento y Seguridad
+                </TabsTrigger>
+                <TabsTrigger value="ai-ethics">
+                    <Bot className="mr-2 h-4 w-4" />
+                    Ética IA
+                </TabsTrigger>
+                <TabsTrigger value="sustainability">
+                    <Leaf className="mr-2 h-4 w-4" />
+                    Sostenibilidad Digital
+                </TabsTrigger>
+                <TabsTrigger value="audit">
+                    <ListChecks className="mr-2 h-4 w-4" />
+                    Auditoría y Transparencia
+                </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="compliance" className="mt-6">
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Panel de Cumplimiento y Seguridad</CardTitle>
+                    <CardDescription>
+                        Supervisa el cumplimiento normativo y la seguridad de los datos.
+                    </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <p className="text-center text-muted-foreground p-8">El panel de cumplimiento y logs de seguridad estará disponible próximamente.</p>
+                    </CardContent>
+                </Card>
+                </TabsContent>
+
+                <TabsContent value="ai-ethics" className="mt-6">
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Gobernanza de IA y Ética Digital</CardTitle>
+                    <CardDescription>
+                        Gestiona los principios éticos y la transparencia de los modelos de IA.
+                    </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <p className="text-center text-muted-foreground p-8">El hub de ética IA estará disponible próximamente.</p>
+                    </CardContent>
+                </Card>
+                </TabsContent>
+                
+                <TabsContent value="sustainability" className="mt-6">
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Sostenibilidad Digital y EcoMétricas</CardTitle>
+                    <CardDescription>
+                        Mide y optimiza la huella digital y el impacto ecológico de tu operación.
+                    </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <p className="text-center text-muted-foreground p-8">Las métricas de sostenibilidad y optimización de recursos estarán disponibles próximamente.</p>
+                    </CardContent>
+                </Card>
+                </TabsContent>
+                
+                <TabsContent value="audit" className="mt-6">
+                <Card>
+                    <CardHeader>
+                    <CardTitle>Monitor de Auditoría e Integridad</CardTitle>
+                    <CardDescription>
+                        Revisa un registro auditable de todos los eventos críticos del sistema.
+                    </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <p className="text-center text-muted-foreground p-8">El registro de auditoría global estará disponible próximamente.</p>
+                    </CardContent>
+                </Card>
+                </TabsContent>
+            </Tabs>
+        </>
+    );
+};
+
 
 export default function SettingsPage() {
   return (
@@ -558,7 +649,7 @@ export default function SettingsPage() {
       />
 
       <Tabs defaultValue="appearance" className="w-full">
-        <TabsList className="grid w-full grid-cols-7">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="profile">Perfil</TabsTrigger>
           <TabsTrigger value="appearance">Apariencia</TabsTrigger>
           <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
@@ -566,6 +657,7 @@ export default function SettingsPage() {
           <TabsTrigger value="integrations">Conexiones</TabsTrigger>
           <TabsTrigger value="automations">Automations</TabsTrigger>
           <TabsTrigger value="hub">Hub</TabsTrigger>
+          <TabsTrigger value="kingflow">KingFlow</TabsTrigger>
         </TabsList>
         <TabsContent value="profile">
           <Card>
@@ -617,6 +709,9 @@ export default function SettingsPage() {
         </TabsContent>
         <TabsContent value="hub">
             <HubSettings />
+        </TabsContent>
+        <TabsContent value="kingflow">
+            <KingFlowSettings />
         </TabsContent>
       </Tabs>
     </>

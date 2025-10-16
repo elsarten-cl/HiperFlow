@@ -82,7 +82,6 @@ const navItems = [
   { href: '/commerce', label: 'Comercio', icon: Landmark },
   { href: '/partners', label: 'Partners', icon: Handshake },
   { href: '/world', label: 'World', icon: Globe },
-  { href: '/governance', label: 'Gobernanza', icon: Shield },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
