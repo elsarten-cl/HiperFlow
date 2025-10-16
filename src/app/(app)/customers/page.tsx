@@ -88,23 +88,25 @@ const CustomerDetailPanel = ({
           <ScrollArea className="h-full">
             <div className="p-6">
                 <SheetHeader className="mb-6 text-left">
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-4">
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-muted">
-                            <UserCircle className="h-10 w-10 text-muted-foreground" />
+                    <SheetTitle className="sr-only">Detalle del Cliente</SheetTitle>
+                    <SheetDescription className="sr-only">Información detallada sobre {contact.name}.</SheetDescription>
+                    <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-muted">
+                                <UserCircle className="h-10 w-10 text-muted-foreground" />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-headline font-semibold">{contact.name}</h2>
+                                <p className="text-muted-foreground">
+                                    {contact.jobTitle} {company ? `en ${company.name}` : ''}
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <SheetTitle className="text-2xl font-headline">{contact.name}</SheetTitle>
-                            <SheetDescription className="text-muted-foreground">
-                                {contact.jobTitle} {company ? `en ${company.name}` : ''}
-                            </SheetDescription>
+                        <div className="flex gap-2">
+                            <Button variant="outline" size="icon" onClick={() => onEditContact(contact)}><Pencil className="h-4 w-4" /></Button>
+                            <Button variant="outline" size="icon" className="hover:bg-destructive hover:text-destructive-foreground"><Trash2 className="h-4 w-4" /></Button>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="icon" onClick={() => onEditContact(contact)}><Pencil className="h-4 w-4" /></Button>
-                        <Button variant="outline" size="icon" className="hover:bg-destructive hover:text-destructive-foreground"><Trash2 className="h-4 w-4" /></Button>
-                    </div>
-                </div>
                 </SheetHeader>
 
                 <div className="grid grid-cols-2 gap-4 text-sm mb-6">

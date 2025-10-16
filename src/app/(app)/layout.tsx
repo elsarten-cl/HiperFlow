@@ -145,6 +145,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     </SheetTrigger>
                     <SheetContent side="left" className="flex flex-col p-0">
                         <SheetHeader className="p-6 pb-0">
+                             <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+                             <SheetDescription className="sr-only">Selecciona un módulo para navegar por la aplicación.</SheetDescription>
                             <Link
                                 href="/"
                                 className="flex items-center gap-2 text-lg font-semibold mb-4"
@@ -171,7 +173,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </Sheet>
 
                 <Link href="/" className="flex items-center gap-2 font-semibold font-headline text-lg md:text-base">
-                    <HiperFlowLogo className="h-10 w-auto" />
+                    <HiperFlowLogo className="h-12 w-auto" />
                 </Link>
             </div>
             

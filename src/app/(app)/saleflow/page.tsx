@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet';
@@ -99,6 +100,7 @@ export default function SaleFlowPage() {
         <SheetContent className="sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>Crear Nuevo Flow</SheetTitle>
+            <SheetDescription>Inicia un nuevo negocio para añadir a tu pipeline.</SheetDescription>
           </SheetHeader>
           <div className="py-4">
             <DealForm
