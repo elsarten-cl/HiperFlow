@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -21,6 +22,7 @@ import {
   BookOpen,
   Handshake,
   Globe,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -80,6 +82,7 @@ const navItems = [
   { href: '/commerce', label: 'Comercio', icon: Landmark },
   { href: '/partners', label: 'Partners', icon: Handshake },
   { href: '/world', label: 'World', icon: Globe },
+  { href: '/governance', label: 'Gobernanza', icon: Shield },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
