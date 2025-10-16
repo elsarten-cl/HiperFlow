@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 const HiperFlowLogo = ({ className }: { className?: string }) => (
     <Image
-      src="http://hiperflow.app.elsartenpro.com/wp-content/uploads/2025/10/5.png"
+      src="http://hiperflow.app.elsartenpro.com/wp-content/uploads/2025/10/5-1.png"
       alt="HiperFlow Logo"
       width={140}
       height={40}
