@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -182,42 +181,14 @@ function hexToHsl(hex: string): string {
 
 
 const integrations = [
-  {
-    name: 'Google Workspace',
-    description: 'Sincroniza tu Calendario, Drive y Gmail.',
-    logo: '/google-logo.svg', // Placeholder
-    status: 'disconnected',
-  },
-  {
-    name: 'Meta Business Suite',
-    description: 'Conecta Facebook, Instagram y WhatsApp.',
-    logo: '/meta-logo.svg', // Placeholder
-    status: 'disconnected',
-  },
-  {
-    name: 'Shopify',
-    description: 'Importa clientes y pedidos de tu e-commerce.',
-    logo: '/shopify-logo.svg', // Placeholder
-    status: 'disconnected',
-  },
-  {
-    name: 'WooCommerce',
-    description: 'Sincroniza tu tienda online con HiperFlow.',
-    logo: '/woocommerce-logo.svg', // Placeholder
-    status: 'disconnected',
-  },
-  {
-    name: 'HubSpot',
-    description: 'Sincronización bidireccional de contactos.',
-    logo: '/hubspot-logo.svg', // Placeholder
-    status: 'disconnected',
-  },
-  {
-    name: 'Kommo CRM',
-    description: 'Conecta tus embudos de Kommo.',
-    logo: '/kommo-logo.svg', // Placeholder
-    status: 'disconnected',
-  },
+  { name: 'Google Workspace', description: 'Sincroniza Calendario, Drive y Gmail.', status: 'disconnected', category: 'Comunicación' },
+  { name: 'Meta Business Suite', description: 'Conecta Facebook, Instagram y WhatsApp.', status: 'disconnected', category: 'Redes Sociales' },
+  { name: 'Shopify', description: 'Importa clientes y pedidos de tu e-commerce.', status: 'disconnected', category: 'Pagos y Facturación' },
+  { name: 'WooCommerce', description: 'Sincroniza tu tienda online con HiperFlow.', status: 'disconnected', category: 'Pagos y Facturación' },
+  { name: 'HubSpot', description: 'Sincronización bidireccional de contactos.', status: 'disconnected', category: 'CRMs y ERPs' },
+  { name: 'Kommo CRM', description: 'Conecta tus embudos de Kommo.', status: 'disconnected', category: 'CRMs y ERPs' },
+  { name: 'Stripe', description: 'Procesa pagos y gestiona suscripciones.', status: 'connected', category: 'Pagos y Facturación' },
+  { name: 'Slack', description: 'Envía notificaciones y alertas a tus canales.', status: 'disconnected', category: 'Comunicación' },
 ];
 
 const LogoPlaceholder = ({ name }: { name: string }) => (
@@ -231,35 +202,36 @@ const IntegrationsSettings = () => {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Centro de Integraciones</CardTitle>
+                <CardTitle>Centro de Conexiones</CardTitle>
                 <CardDescription>
-                Conecta HiperFlow con tus plataformas favoritas. Sincroniza datos, automatiza campañas y gestiona todo tu ecosistema digital desde un solo lugar.
+                Conecta HiperFlow con tus herramientas favoritas. Sincroniza datos, mensajes y flujos en un solo lugar.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {integrations.map((integration) => (
-                <Card key={integration.name}>
-                    <CardHeader className="flex flex-row items-center gap-4">
-                    <LogoPlaceholder name={integration.name} />
-                    <div>
-                        <CardTitle className="text-lg">{integration.name}</CardTitle>
-                        <Badge variant={integration.status === 'connected' ? 'default' : 'outline'} className={integration.status === 'connected' ? 'bg-green-500/80' : ''}>
-                            {integration.status === 'connected' ? 'Conectado' : 'Desconectado'}
-                        </Badge>
-                    </div>
-                    </CardHeader>
-                    <CardContent>
-                    <p className="text-sm text-muted-foreground h-10">{integration.description}</p>
-                    </CardContent>
-                    <CardFooter>
-                    <Button variant="outline" className="w-full">
-                        {integration.status === 'connected' ? 'Administrar' : 'Conectar'}
-                    </Button>
-                    </CardFooter>
-                </Card>
+                    <Card key={integration.name} className="flex flex-col">
+                        <CardHeader className="flex flex-row items-center gap-4">
+                            <LogoPlaceholder name={integration.name} />
+                            <div>
+                                <CardTitle className="text-lg">{integration.name}</CardTitle>
+                                <Badge variant={integration.status === 'connected' ? 'default' : 'outline'} className={cn(integration.status === 'connected' && 'bg-green-500/20 text-green-300 border-green-500/40', integration.status === 'disconnected' && 'border-dashed')}>
+                                    {integration.status === 'connected' ? 'Conectado' : 'Desconectado'}
+                                </Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="flex-1">
+                            <p className="text-sm text-muted-foreground h-10">{integration.description}</p>
+                        </CardContent>
+                        <CardFooter>
+                            <Button variant="outline" className="w-full">
+                                {integration.status === 'connected' ? 'Administrar' : 'Conectar'}
+                                <ExternalLink className="ml-2 h-4 w-4" />
+                            </Button>
+                        </CardFooter>
+                    </Card>
                 ))}
-            </div>
+                </div>
             </CardContent>
              <CardFooter className="border-t pt-6">
                 <Button>
@@ -451,7 +423,7 @@ export default function SettingsPage() {
           <TabsTrigger value="appearance">Apariencia</TabsTrigger>
           <TabsTrigger value="notifications">Notificaciones</TabsTrigger>
           <TabsTrigger value="users">Usuarios & Roles</TabsTrigger>
-          <TabsTrigger value="integrations">Integraciones</TabsTrigger>
+          <TabsTrigger value="integrations">Conexiones</TabsTrigger>
           <TabsTrigger value="automations">Automations</TabsTrigger>
         </TabsList>
         <TabsContent value="profile">
@@ -506,3 +478,5 @@ export default function SettingsPage() {
     </>
   );
 }
+
+    
