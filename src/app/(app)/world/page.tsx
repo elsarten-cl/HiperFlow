@@ -304,7 +304,7 @@ function WorldPageContent() {
               <CardDescription>
                 Explora y añade nuevas funcionalidades a tu CRM.
               </CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent>
                <p className="text-center text-muted-foreground p-8">El catálogo de herramientas y módulos estará disponible próximamente.</p>
             </CardContent>
@@ -318,7 +318,7 @@ function WorldPageContent() {
               <CardDescription>
                 Encuentra agencias y consultores certificados para ayudarte a crecer.
               </CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent>
               <p className="text-center text-muted-foreground p-8">El listado de partners estará disponible próximamente.</p>
             </CardContent>
@@ -332,7 +332,7 @@ function WorldPageContent() {
               <CardDescription>
                 Acelera tu trabajo con plantillas pre-diseñadas para flujos, reportes y más.
               </CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent>
               <p className="text-center text-muted-foreground p-8">La biblioteca de plantillas estará disponible próximamente.</p>
             </CardContent>
@@ -346,7 +346,7 @@ function WorldPageContent() {
               <CardDescription>
                 Conecta todas tus herramientas externas en un solo lugar.
               </CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent>
               <p className="text-center text-muted-foreground p-8">El panel de integraciones estará disponible próximamente.</p>
             </CardContent>
