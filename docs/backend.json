@@ -748,6 +748,56 @@
         "createdAt",
         "updatedAt"
       ]
+    },
+    "ClientProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ClientProfile",
+      "type": "object",
+      "description": "Represents a client's profile for the customer portal.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the client profile, usually linked to a Contact ID."
+        },
+        "contactId": {
+          "type": "string",
+          "description": "Reference to the Contact entity."
+        },
+        "teamId": {
+          "type": "string",
+          "description": "Reference to the Team entity."
+        },
+        "theme": {
+          "type": "string",
+          "description": "Visual theme preference for the portal.",
+          "enum": ["light", "dark"]
+        },
+        "language": {
+          "type": "string",
+          "description": "Language preference.",
+          "enum": ["en", "es"]
+        },
+        "notifications": {
+          "type": "object",
+          "properties": {
+            "newInvoice": { "type": "boolean" },
+            "projectUpdate": { "type": "boolean" }
+          }
+        },
+        "lastLogin": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["id", "contactId", "teamId", "createdAt", "updatedAt"]
     }
   },
   "auth": {
@@ -998,6 +1048,22 @@
             {
               "name": "automationId",
               "description": "Unique identifier for the automation."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/clientProfiles/{clientProfileId}",
+        "definition": {
+          "entityName": "ClientProfile",
+          "schema": {
+            "$ref": "#/backend/entities/ClientProfile"
+          },
+          "description": "Represents a client's profile for the customer portal.",
+          "params": [
+            {
+              "name": "clientProfileId",
+              "description": "Unique identifier for the client profile."
             }
           ]
         }

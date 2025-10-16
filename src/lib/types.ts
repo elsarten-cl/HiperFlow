@@ -129,3 +129,18 @@ export type SocialPost = {
   createdAt: Timestamp | FieldValue;
   updatedAt: Timestamp | FieldValue;
 };
+
+export type ClientProfile = {
+  id: string;
+  contactId: string;
+  teamId: string;
+  theme?: 'light' | 'dark';
+  language?: 'en' | 'es';
+  notifications?: {
+    newInvoice?: boolean;
+    projectUpdate?: boolean;
+  };
+  lastLogin?: FieldValue | Timestamp;
+  createdAt: FieldValue | Timestamp;
+  updatedAt: FieldValue | Timestamp;
+};
