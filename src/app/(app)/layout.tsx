@@ -84,6 +84,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!isUserLoading && !user) {
@@ -120,11 +121,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  const MobileNavLink = ({ href, label, icon: Icon, exact = false }: { href: string, label: string, icon: React.ElementType, exact?: boolean }) => {
+  const MobileNavLink = ({ href, label, icon: Icon, exact = false, onClick }: { href: string, label: string, icon: React.ElementType, exact?: boolean, onClick: () => void }) => {
     const isActive = exact ? pathname === href : pathname.startsWith(href);
     return (
          <Link
             href={href}
+            onClick={onClick}
             className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:text-primary',
                 isActive ? 'text-primary bg-muted' : 'text-muted-foreground'
@@ -149,7 +151,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                     <NavLink key={href} href={href} label={label} exact={exact} />
                 ))}
            </nav>
-           <Sheet>
+           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                 <SheetTrigger asChild>
                     <Button
                     variant="outline"
@@ -173,7 +175,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                             <HiperFlowLogo className="h-6 w-auto" />
                         </Link>
                         {navItems.map(({ href, label, icon, exact }) => (
-                            <MobileNavLink key={href} href={href} label={label} icon={icon} exact={exact} />
+                            <MobileNavLink 
+                                key={href} 
+                                href={href} 
+                                label={label} 
+                                icon={icon} 
+                                exact={exact}
+                                onClick={() => setIsMobileMenuOpen(false)}
+                            />
                         ))}
                     </nav>
                 </SheetContent>
