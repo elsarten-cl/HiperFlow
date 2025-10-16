@@ -127,53 +127,52 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen w-full flex-col">
        <FirebaseErrorListener />
-        <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-50">
-           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <SheetTrigger asChild>
-                    <Button
-                    variant="outline"
-                    size="icon"
-                    className="shrink-0"
-                    >
-                    <Menu className="h-5 w-5" />
-                    <span className="sr-only">Toggle navigation menu</span>
-                    </Button>
-                </SheetTrigger>
-                <SheetContent side="left">
-                    <SheetHeader>
-                      <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
-                      <SheetDescription className="sr-only">Navegación principal de la aplicación HiperFlow.</SheetDescription>
-                    </SheetHeader>
-                    <nav className="grid gap-6 text-base font-medium">
-                        <Link
-                            href="/"
-                            className="flex items-center gap-2 text-lg font-semibold mb-4"
-                             onClick={() => setIsMobileMenuOpen(false)}
+       <header className="sticky top-0 flex h-16 items-center justify-between gap-4 border-b bg-background px-4 md:px-6 z-50">
+            <div className="flex items-center gap-4">
+                <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                    <SheetTrigger asChild>
+                        <Button
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0"
                         >
-                            <HiperFlowLogo className="h-6 w-auto" />
-                        </Link>
-                        {navItems.map(({ href, label, icon, exact }) => (
-                            <MobileNavLink 
-                                key={href} 
-                                href={href} 
-                                label={label} 
-                                icon={icon} 
-                                exact={exact}
+                        <Menu className="h-5 w-5" />
+                        <span className="sr-only">Toggle navigation menu</span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left">
+                        <SheetHeader>
+                        <SheetTitle className="sr-only">Menú de Navegación</SheetTitle>
+                        <SheetDescription className="sr-only">Navegación principal de la aplicación HiperFlow.</SheetDescription>
+                        </SheetHeader>
+                        <nav className="grid gap-6 text-base font-medium">
+                            <Link
+                                href="/"
+                                className="flex items-center gap-2 text-lg font-semibold mb-4"
                                 onClick={() => setIsMobileMenuOpen(false)}
-                            />
-                        ))}
-                    </nav>
-                </SheetContent>
-            </Sheet>
+                            >
+                                <HiperFlowLogo className="h-8 w-auto" />
+                            </Link>
+                            {navItems.map(({ href, label, icon, exact }) => (
+                                <MobileNavLink 
+                                    key={href} 
+                                    href={href} 
+                                    label={label} 
+                                    icon={icon} 
+                                    exact={exact}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                />
+                            ))}
+                        </nav>
+                    </SheetContent>
+                </Sheet>
 
-            <Link href="/" className="flex items-center gap-2 font-semibold font-headline text-lg md:text-base">
-                <HiperFlowLogo className="h-6 w-auto" />
-            </Link>
+                <Link href="/" className="flex items-center gap-2 font-semibold font-headline text-lg md:text-base">
+                    <HiperFlowLogo className="h-8 w-auto" />
+                </Link>
+            </div>
             
-            <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
-                <div className="ml-auto flex-1 sm:flex-initial">
-                    {/* Optional Search Bar */}
-                </div>
+            <div className="flex items-center gap-4 md:gap-2 lg:gap-4">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon" className="rounded-full">
