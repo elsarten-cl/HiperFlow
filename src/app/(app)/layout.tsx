@@ -19,6 +19,7 @@ import {
   Zap,
   Landmark,
   BookOpen,
+  Handshake,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -77,6 +78,7 @@ const navItems = [
   { href: '/social', label: 'Social', icon: PenSquare },
   { href: '/commerce', label: 'Comercio', icon: Landmark },
   { href: '/hub', label: 'Hub', icon: BookOpen },
+  { href: '/partners', label: 'Partners', icon: Handshake },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
 
