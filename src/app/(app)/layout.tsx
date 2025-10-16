@@ -77,7 +77,6 @@ const navItems = [
   { href: '/customers', label: 'Clientes', icon: Users },
   { href: '/social', label: 'Social', icon: PenSquare },
   { href: '/commerce', label: 'Comercio', icon: Landmark },
-  { href: '/hub', label: 'Hub', icon: BookOpen },
   { href: '/partners', label: 'Partners', icon: Handshake },
   { href: '/settings', label: 'Configuración', icon: Settings },
 ];
