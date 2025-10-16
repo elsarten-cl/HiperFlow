@@ -359,7 +359,7 @@ function WorldPageContent() {
               <CardTitle>Comunidad Global</CardTitle>
               <CardDescription>
                 Conecta con otros usuarios, comparte ideas y resuelve dudas.
-              </d
+              </d>
             </CardHeader>
             <CardContent>
               <p className="text-center text-muted-foreground p-8">Los foros de la comunidad estarán disponibles próximamente.</p>
