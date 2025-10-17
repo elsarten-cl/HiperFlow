@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -381,114 +380,117 @@ export const KanbanBoard = () => {
         const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
         const activitiesCollection = collection(firestore, 'activities');
 
-        try {
-            const outboxDoc = await getDoc(automationOutboxRef);
-            if (outboxDoc.exists() && outboxDoc.data()?.status === 'sent') {
-                return; // Event already sent, idempotent exit.
-            }
+        // Idempotency check
+        const outboxDoc = await getDoc(automationOutboxRef).catch(serverError => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: automationOutboxRef.path, operation: 'get'
+            }));
+            throw serverError; // Stop execution if we can't check for idempotency
+        });
 
-            // --- Start: Replacing writeBatch with individual operations ---
-
-            // 1. Update the deal
-            const dealUpdateData = { 
-                stage: newStage,
-                updatedAt: timestamp,
-                lastActivity: timestamp,
-            };
-            await updateDoc(dealRef, dealUpdateData).catch(serverError => {
-                 errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: dealRef.path, operation: 'update', requestResourceData: dealUpdateData
-                }));
-                throw serverError; // Stop execution if this fails
-            });
-
-            // 2. Log activity
-            const oldStageName = stageConfig[dealToMove.stage]?.name || dealToMove.stage;
-            const newStageName = stageConfig[newStage]?.name || newStage;
-            const activityData = {
-                type: 'stageChange' as const,
-                notes: `Cambio de etapa: ${oldStageName} -> ${newStageName}`,
-                timestamp: timestamp,
-                dealId: dealToMove.id,
-                contactId: dealToMove.contact?.id || '',
-                teamId: dealToMove.teamId,
-                actor: user.email || user.uid,
-            };
-            await addDoc(activitiesCollection, activityData).catch(serverError => {
-                 errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: activitiesCollection.path, operation: 'create', requestResourceData: activityData
-                }));
-                // Don't throw, as the primary operation (deal update) succeeded
-            });
-            
-            // 3. Prepare for webhook
-             const outboxData = {
-                eventId: eventId,
-                dealId: dealToMove.id,
-                status: "pending",
-                createdAt: timestamp
-            };
-            await setDoc(automationOutboxRef, outboxData).catch(serverError => {
-                errorEmitter.emit('permission-error', new FirestorePermissionError({
-                    path: automationOutboxRef.path, operation: 'write', requestResourceData: outboxData
-                }));
-                // Don't throw, as the primary operation (deal update) succeeded
-            });
-            
-            // --- End: Individual operations ---
-
-
-            // 4. Send webhook (optimistically, after initiating the DB transaction)
-            const webhookUrl = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
-            const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
-
-            const payload = {
-                eventType: "saleflow.stage.changed",
-                eventId: eventId,
-                dealId: dealToMove.id,
-                title: dealToMove.title,
-                description: (dealToMove as any).description || null,
-                previousStage: dealToMove.stage,
-                newStage: newStage,
-                value: dealToMove.amount,
-                currency: dealToMove.currency,
-                clientName: dealToMove.contact?.name,
-                companyName: dealToMove.company?.name,
-                contactEmail: dealToMove.contact?.email,
-                ownerUserId: dealToMove.ownerId,
-                ownerEmail: user.email,
-                createdAt: getTimestampAsDate(dealToMove.createdAt)?.toISOString(),
-                updatedAt: updatedAt,
-                appUrl: `${appBaseUrl}/saleflow?dealId=${dealToMove.id}`
-            };
-
-            const startTime = Date.now();
-            fetch(webhookUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).then(async (response) => {
-                 const responseTimeMs = Date.now() - startTime;
-                 await updateDoc(automationOutboxRef, {
-                    status: response.ok ? 'sent' : 'failed',
-                    payload: payload,
-                    responseStatus: response.status,
-                    responseTimeMs: responseTimeMs,
-                    lastAttempt: serverTimestamp()
-                });
-            }).catch(async (error) => {
-                 await updateDoc(automationOutboxRef, {
-                    status: 'failed',
-                    lastError: error.message,
-                    lastAttempt: serverTimestamp()
-                });
-            })
-
-        } catch (error) {
-             if (!(error instanceof FirestorePermissionError)) {
-                console.error("An unexpected error occurred during drag and drop:", error);
-             }
+        if (outboxDoc.exists() && outboxDoc.data()?.status === 'sent') {
+            console.log("Idempotency check: Event already sent.");
+            return;
         }
+
+        const dealUpdateData = { 
+            stage: newStage,
+            updatedAt: timestamp,
+            lastActivity: timestamp,
+        };
+        const oldStageName = stageConfig[dealToMove.stage]?.name || dealToMove.stage;
+        const newStageName = stageConfig[newStage]?.name || newStage;
+        const activityData = {
+            type: 'stageChange' as const,
+            notes: `Cambio de etapa: ${oldStageName} -> ${newStageName}`,
+            timestamp: timestamp,
+            dealId: dealToMove.id,
+            contactId: dealToMove.contact?.id || '',
+            teamId: dealToMove.teamId,
+            actor: user.email || user.uid,
+        };
+        const outboxData = {
+            eventId: eventId,
+            dealId: dealToMove.id,
+            status: "pending",
+            createdAt: timestamp
+        };
+
+        // 1. Update the deal
+        updateDoc(dealRef, dealUpdateData).catch(serverError => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: dealRef.path, operation: 'update', requestResourceData: dealUpdateData
+            }));
+        });
+
+        // 2. Log activity
+        addDoc(activitiesCollection, activityData).catch(serverError => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: activitiesCollection.path, operation: 'create', requestResourceData: activityData
+            }));
+        });
+        
+        // 3. Prepare for webhook
+        setDoc(automationOutboxRef, outboxData).catch(serverError => {
+            errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: automationOutboxRef.path, operation: 'write', requestResourceData: outboxData
+            }));
+        });
+        
+        // 4. Send webhook
+        const webhookUrl = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
+        const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
+        const payload = {
+            eventType: "saleflow.stage.changed",
+            eventId: eventId,
+            dealId: dealToMove.id,
+            title: dealToMove.title,
+            description: (dealToMove as any).description || null,
+            previousStage: dealToMove.stage,
+            newStage: newStage,
+            value: dealToMove.amount,
+            currency: dealToMove.currency,
+            clientName: dealToMove.contact?.name,
+            companyName: dealToMove.company?.name,
+            contactEmail: dealToMove.contact?.email,
+            ownerUserId: dealToMove.ownerId,
+            ownerEmail: user.email,
+            createdAt: getTimestampAsDate(dealToMove.createdAt)?.toISOString(),
+            updatedAt: updatedAt,
+            appUrl: `${appBaseUrl}/saleflow?dealId=${dealToMove.id}`
+        };
+
+        const startTime = Date.now();
+        fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        }).then(async (response) => {
+             const responseTimeMs = Date.now() - startTime;
+             const updateData = {
+                status: response.ok ? 'sent' : 'failed',
+                payload: payload,
+                responseStatus: response.status,
+                responseTimeMs: responseTimeMs,
+                lastAttempt: serverTimestamp()
+            };
+             updateDoc(automationOutboxRef, updateData).catch(serverError => {
+                 errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: automationOutboxRef.path, operation: 'update', requestResourceData: updateData
+                }));
+             });
+        }).catch(async (error) => {
+             const errorData = {
+                status: 'failed',
+                lastError: error.message,
+                lastAttempt: serverTimestamp()
+             };
+             updateDoc(automationOutboxRef, errorData).catch(serverError => {
+                 errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: automationOutboxRef.path, operation: 'update', requestResourceData: errorData
+                }));
+             });
+        });
     }
   };
 
