@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { collection, query, where, doc, updateDoc, serverTimestamp, addDoc, Timestamp, getDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, serverTimestamp, addDoc, Timestamp, getDoc, setDoc } from 'firebase/firestore';
 import {
   useCollection,
   useFirestore,
@@ -387,7 +387,7 @@ export const KanbanBoard = () => {
                 return; // Event already sent, idempotent exit.
             }
 
-            const batch = writeBatch(firestore);
+            // --- Start: Replacing writeBatch with individual operations ---
 
             // 1. Update the deal
             const dealUpdateData = { 
@@ -395,7 +395,12 @@ export const KanbanBoard = () => {
                 updatedAt: timestamp,
                 lastActivity: timestamp,
             };
-            batch.update(dealRef, dealUpdateData);
+            await updateDoc(dealRef, dealUpdateData).catch(serverError => {
+                 errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: dealRef.path, operation: 'update', requestResourceData: dealUpdateData
+                }));
+                throw serverError; // Stop execution if this fails
+            });
 
             // 2. Log activity
             const oldStageName = stageConfig[dealToMove.stage]?.name || dealToMove.stage;
@@ -409,29 +414,29 @@ export const KanbanBoard = () => {
                 teamId: dealToMove.teamId,
                 actor: user.email || user.uid,
             };
-            batch.set(doc(activitiesCollection), activityData);
+            await addDoc(activitiesCollection, activityData).catch(serverError => {
+                 errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: activitiesCollection.path, operation: 'create', requestResourceData: activityData
+                }));
+                // Don't throw, as the primary operation (deal update) succeeded
+            });
             
             // 3. Prepare for webhook
-            batch.set(automationOutboxRef, {
+             const outboxData = {
                 eventId: eventId,
                 dealId: dealToMove.id,
                 status: "pending",
                 createdAt: timestamp
+            };
+            await setDoc(automationOutboxRef, outboxData).catch(serverError => {
+                errorEmitter.emit('permission-error', new FirestorePermissionError({
+                    path: automationOutboxRef.path, operation: 'write', requestResourceData: outboxData
+                }));
+                // Don't throw, as the primary operation (deal update) succeeded
             });
+            
+            // --- End: Individual operations ---
 
-            // Commit the batch and handle potential permission errors
-            batch.commit().catch(serverError => {
-                const permissionError = new FirestorePermissionError({
-                    path: `batch write (deal: ${dealRef.path}, activity: ${activitiesCollection.path}, outbox: ${automationOutboxRef.path})`,
-                    operation: 'write', 
-                    requestResourceData: {
-                        dealUpdate: dealUpdateData,
-                        activity: activityData,
-                        outbox: { eventId, status: "pending" }
-                    },
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            });
 
             // 4. Send webhook (optimistically, after initiating the DB transaction)
             const webhookUrl = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
@@ -480,14 +485,8 @@ export const KanbanBoard = () => {
             })
 
         } catch (error) {
-             // This outer catch is for synchronous errors like getDoc failure
-             if (error instanceof Error) {
-                const permissionError = new FirestorePermissionError({
-                    path: automationOutboxRef.path,
-                    operation: 'get',
-                    requestResourceData: { eventId },
-                });
-                errorEmitter.emit('permission-error', permissionError);
+             if (!(error instanceof FirestorePermissionError)) {
+                console.error("An unexpected error occurred during drag and drop:", error);
              }
         }
     }
