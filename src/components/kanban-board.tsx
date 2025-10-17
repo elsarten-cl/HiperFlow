@@ -8,6 +8,8 @@ import {
   useUser,
   useMemoFirebase,
   WithId,
+  errorEmitter,
+  FirestorePermissionError,
 } from '@/firebase';
 import { type Deal, type DealStage, type Automation } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -373,39 +375,40 @@ export const KanbanBoard = () => {
         const timestamp = serverTimestamp();
         const updatedAt = new Date().toISOString();
         const eventId = simpleHash(`${dealToMove.id}-${updatedAt}`);
-        const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
         
+        const dealRef = doc(firestore, 'deals', dealToMove.id);
+        const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
+        const activitiesCollection = collection(firestore, 'activities');
+
         try {
             const outboxDoc = await getDoc(automationOutboxRef);
             if (outboxDoc.exists() && outboxDoc.data()?.status === 'sent') {
-                console.log(`Event ${eventId} already sent. Skipping.`);
-                return;
+                return; // Event already sent, idempotent exit.
             }
 
             const batch = writeBatch(firestore);
 
             // 1. Update the deal
-            const dealRef = doc(firestore, 'deals', dealToMove.id);
-            batch.update(dealRef, { 
+            const dealUpdateData = { 
                 stage: newStage,
                 updatedAt: timestamp,
                 lastActivity: timestamp,
-            });
+            };
+            batch.update(dealRef, dealUpdateData);
 
             // 2. Log activity
-            const activitiesCollection = collection(firestore, 'activities');
             const oldStageName = stageConfig[dealToMove.stage]?.name || dealToMove.stage;
             const newStageName = stageConfig[newStage]?.name || newStage;
-            const activityNotes = `Cambio de etapa: ${oldStageName} -> ${newStageName}`;
-            batch.set(doc(activitiesCollection), {
-                type: 'stageChange',
-                notes: activityNotes,
+            const activityData = {
+                type: 'stageChange' as const,
+                notes: `Cambio de etapa: ${oldStageName} -> ${newStageName}`,
                 timestamp: timestamp,
                 dealId: dealToMove.id,
                 contactId: dealToMove.contact?.id || '',
                 teamId: dealToMove.teamId,
                 actor: user.email,
-            });
+            };
+            batch.set(doc(activitiesCollection), activityData);
             
             // 3. Prepare for webhook
             batch.set(automationOutboxRef, {
@@ -415,9 +418,21 @@ export const KanbanBoard = () => {
                 createdAt: timestamp
             });
 
-            await batch.commit();
+            // Commit the batch and handle potential permission errors
+            batch.commit().catch(serverError => {
+                const permissionError = new FirestorePermissionError({
+                    path: `batch write (deal: ${dealRef.path}, activity: ${activitiesCollection.path}, outbox: ${automationOutboxRef.path})`,
+                    operation: 'write', 
+                    requestResourceData: {
+                        dealUpdate: dealUpdateData,
+                        activity: activityData,
+                        outbox: { eventId, status: "pending" }
+                    },
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            });
 
-            // 4. Send webhook (after DB transaction succeeds)
+            // 4. Send webhook (optimistically, after initiating the DB transaction)
             const webhookUrl = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
             const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
 
@@ -442,30 +457,37 @@ export const KanbanBoard = () => {
             };
 
             const startTime = Date.now();
-            const response = await fetch(webhookUrl, {
+            fetch(webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            });
-            const responseTimeMs = Date.now() - startTime;
-
-            await updateDoc(automationOutboxRef, {
-                status: response.ok ? 'sent' : 'failed',
-                payload: payload,
-                responseStatus: response.status,
-                responseTimeMs: responseTimeMs,
-                lastAttempt: serverTimestamp()
-            });
-
-        } catch (error) {
-            console.error("Error processing stage change automation:", error);
-            if (error instanceof Error) {
-                await updateDoc(automationOutboxRef, {
+            }).then(async (response) => {
+                 const responseTimeMs = Date.now() - startTime;
+                 await updateDoc(automationOutboxRef, {
+                    status: response.ok ? 'sent' : 'failed',
+                    payload: payload,
+                    responseStatus: response.status,
+                    responseTimeMs: responseTimeMs,
+                    lastAttempt: serverTimestamp()
+                });
+            }).catch(async (error) => {
+                 await updateDoc(automationOutboxRef, {
                     status: 'failed',
                     lastError: error.message,
                     lastAttempt: serverTimestamp()
                 });
-            }
+            })
+
+        } catch (error) {
+             // This outer catch is for synchronous errors like getDoc failure
+             if (error instanceof Error) {
+                const permissionError = new FirestorePermissionError({
+                    path: automationOutboxRef.path,
+                    operation: 'get',
+                    requestResourceData: { eventId },
+                });
+                errorEmitter.emit('permission-error', permissionError);
+             }
         }
     }
   };
