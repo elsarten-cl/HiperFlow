@@ -1,289 +1,399 @@
 /**
  * @file Firestore Security Rules
- * @core-philosophy This ruleset aims to resolve a permissions issue by flattening the data structure and enforcing team-based access control at the document level.
- * All major entities are stored in root-level collections (e.g., /users, /contacts, /companies) with a `teamId` field for multi-tenancy scoping.
- * @data-structure Root-level collections for all entities. Each document contains a `teamId` field.
- * @key-security-decisions Access control is based on the `teamId` field within each document.  The rules explicitly check if the authenticated user's team ID matches the document's team ID for write operations.
- * Read operations are generally open for prototyping purposes but should be restricted in the production ruleset.
- * User listing is generally disallowed for privacy.
- * @denormalization-for-authorization The `teamId` is denormalized onto every document to allow for efficient team-based access control without requiring additional `get()` calls.
+ * @version 2
+ *
+ * @description HiperFlow CRM Security Rules
+ *
+ * Core Philosophy:
+ * This ruleset enforces a team-based access control model. All documents are scoped to a specific team,
+ * and access is generally granted to authenticated users (with a verified identity) who belong to that team.
+ * This initial version prioritizes correct authorization and avoids complex data validation for rapid prototyping.
+ *
+ * Data Structure:
+ * All data is stored in root-level collections (e.g., /users, /contacts, /companies). Each document includes a 'teamId' field,
+ * which is used to scope data to specific teams. This flattened structure simplifies rule evaluation.
+ *
+ * Key Security Decisions:
+ * - User listing is generally disallowed to prevent information disclosure.
+ * - Write operations are strictly controlled based on team membership.
+ * - The rules do not currently enforce complex schema validation to allow for flexible data shapes during prototyping.
+ * - Denormalization: All documents contain a `teamId` to avoid expensive `get()` operations to determine team membership.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants access to Team documents based on team ID.
+     * @description Checks if the request is authenticated (user is signed in).
+     * @return {bool} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user's ID matches the provided user ID.
+     * @param {string} userId The user ID to compare against the authenticated user's ID.
+     * @return {bool} True if the user IDs match, false otherwise.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is a member of the team associated with the resource.
+     * @param {string} teamId The team ID to compare against the resource's team ID.
+     * @return {bool} True if the user is a member of the team, false otherwise.
+     */
+    function isTeamMember(teamId) {
+      return isSignedIn() && teamId == request.auth.token.team_id;
+    }
+
+    /**
+     * @description Combines ownership and existence check for destructive operations.
+     * @param {string} userId The user ID that must match the document's owner.
+     * @return {bool} True if the document exists and is owned by the user.
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    /**
+     * @description Enforces that the authenticated user belongs to the team specified in the resource data.
+     * @param {string} teamId The team ID from the incoming resource data.
+     * @return {bool} True if the authenticated user is a member of the specified team.
+     */
+    function isCreatingForTeam(teamId) {
+        return isSignedIn() && request.auth.token.team_id == teamId && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+    }
+
+    /**
+     * @description Enforces that the authenticated user belongs to the team specified in the resource data.
+     * @param {string} teamId The team ID from the existing resource data.
+     * @return {bool} True if the authenticated user is a member of the specified team.
+     */
+    function isUpdatingForTeam(teamId) {
+        return isSignedIn() && resource.data.teamId == teamId && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+    }
+
+    /**
+     * @description Enforces that the authenticated user belongs to the team specified in the resource data.
+     * @param {string} teamId The team ID from the existing resource data.
+     * @return {bool} True if the authenticated user is a member of the specified team.
+     */
+    function isDeletingForTeam(teamId) {
+        return isSignedIn() && resource.data.teamId == teamId;
+    }
+
+
+    /**
+     * @description Manages access to team documents.
      * @path /teams/{teamId}
-     * @allow (create, update, delete) Authenticated user can modify a team if they are the owner.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a team.
-     * @principle Enforces document ownership for writes.
+     * @allow (get) Authenticated user.
+     * @deny (create) Anyone. Teams should be created via admin SDK.
+     * @principle Enforces team-level access control.
      */
     match /teams/{teamId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if false;
+      allow update: if false;
       allow delete: if false;
     }
 
     /**
-     * @description Grants access to User documents based on user ID.
+     * @description Manages access to user documents.
      * @path /users/{userId}
-     * @allow (create) Authenticated user can create their own user document.
-     * @deny (create, update, delete) Unauthenticated user cannot create a user.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) User can create their own profile if the userId matches their auth UID.
+     * @allow (get, update, delete) User can only access their own profile.
+     * @deny (list) Listing users is not allowed.
+     * @principle Enforces user-ownership access control.
      */
     match /users/{userId} {
-      allow get: if isSignedIn() && isOwner(userId);
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-      allow delete: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Grants access to Company documents.
+     * @description Manages access to company documents.
      * @path /companies/{companyId}
-     * @allow (create, update, delete) Authenticated user can modify a company if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a company.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create companies for their team.
+     * @allow (get, update, delete) Authenticated users can access companies belonging to their team.
+     * @deny (list) Listing companies is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /companies/{companyId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to Contact documents.
+     * @description Manages access to contact documents.
      * @path /contacts/{contactId}
-     * @allow (create, update, delete) Authenticated user can modify a contact if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a contact.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create contacts for their team.
+     * @allow (get, update, delete) Authenticated users can access contacts belonging to their team.
+     * @deny (list) Listing contacts is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /contacts/{contactId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to Pipeline documents.
+     * @description Manages access to pipeline documents.
      * @path /pipelines/{pipelineId}
-     * @allow (create, update, delete) Authenticated user can modify a pipeline if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a pipeline.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create pipelines for their team.
+     * @allow (get, update, delete) Authenticated users can access pipelines belonging to their team.
+     * @deny (list) Listing pipelines is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /pipelines/{pipelineId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to Stage documents within a Pipeline.
+     * @description Manages access to stage documents within a pipeline.
      * @path /pipelines/{pipelineId}/stages/{stageId}
-     * @allow (create, update, delete) Authenticated user can modify a stage if they are in the same team as the pipeline.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a stage.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create stages for pipelines in their team.
+     * @allow (get, update, delete) Authenticated users can access stages belonging to pipelines in their team.
+     * @deny (list) Listing stages is not allowed.
+     * @principle Enforces team-based access control inherited from the pipeline.
      */
     match /pipelines/{pipelineId}/stages/{stageId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && get(/databases/$(database)/documents/pipelines/$(pipelineId)).data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && get(/databases/$(database)/documents/pipelines/$(pipelineId)).data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['pipelineId']) && request.resource.data.pipelineId == pipelineId;
+      allow update: if isSignedIn() && get(/databases/$(database)/documents/pipelines/$(pipelineId)).data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['pipelineId']) && request.resource.data.pipelineId == pipelineId;
+      allow delete: if isSignedIn() && get(/databases/$(database)/documents/pipelines/$(pipelineId)).data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to Deal documents.
+     * @description Manages access to deal documents.
      * @path /deals/{dealId}
-     * @allow (create, update, delete) Authenticated user can modify a deal if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a deal.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create deals for their team.
+     * @allow (get, update, delete) Authenticated users can access deals belonging to their team.
+     * @deny (list) Listing deals is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /deals/{dealId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to Activity documents.
+     * @description Manages access to activity documents.
      * @path /activities/{activityId}
-     * @allow (create, update, delete) Authenticated user can modify an activity if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify an activity.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create activities for their team.
+     * @allow (get, update, delete) Authenticated users can access activities belonging to their team.
+     * @deny (list) Listing activities is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /activities/{activityId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to AutomationOutbox documents.
+     * @description Manages access to automation outbox documents.
      * @path /automation_outbox/{eventId}
-     * @allow (get) Authenticated user can get an AutomationOutbox event.
-     * @deny (create, update, delete) No one is allowed to create, update, or delete AutomationOutbox events through the client.
-     * @principle Restricts write access to AutomationOutbox.
+     * @allow (create) Authenticated users can create automation outbox events for their team.
+     * @allow (get, update, delete) Authenticated users can access automation outbox events belonging to their team.
+     * @deny (list) Listing automation outbox events is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /automation_outbox/{eventId} {
-      allow get: if isSignedIn();
-      allow list: if false; // No one is allowed to list AutomationOutbox events through the client.
-      allow create, update, delete: if false;
+      allow get: if isSignedIn() && exists(/databases/$(database)/documents/deals/$(resource.data.dealId)) && get(/databases/$(database)/documents/deals/$(resource.data.dealId)).data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['dealId']) && exists(/databases/$(database)/documents/deals/$(request.resource.data.dealId)) && get(/databases/$(database)/documents/deals/$(request.resource.data.dealId)).data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && request.resource.data.keys().hasAll(['dealId']) && exists(/databases/$(database)/documents/deals/$(resource.data.dealId)) && get(/databases/$(database)/documents/deals/$(resource.data.dealId)).data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && request.resource.data.keys().hasAll(['dealId']) && exists(/databases/$(database)/documents/deals/$(resource.data.dealId)) && get(/databases/$(database)/documents/deals/$(resource.data.dealId)).data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to Message documents.
+     * @description Manages access to message documents.
      * @path /messages/{messageId}
-     * @allow (create, update, delete) Authenticated user can modify a message if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a message.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create messages for their team.
+     * @allow (get, update, delete) Authenticated users can access messages belonging to their team.
+     * @deny (list) Listing messages is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /messages/{messageId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to Channel documents.
+     * @description Manages access to channel documents.
      * @path /channels/{channelId}
-     * @allow (create, update, delete) Authenticated user can modify a channel if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a channel.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create channels for their team.
+     * @allow (get, update, delete) Authenticated users can access channels belonging to their team.
+     * @deny (list) Listing channels is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /channels/{channelId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to Webhook documents.
+     * @description Manages access to webhook documents.
      * @path /webhooks/{webhookId}
-     * @allow (create, update, delete) Authenticated user can modify a webhook if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a webhook.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create webhooks for their team.
+     * @allow (get, update, delete) Authenticated users can access webhooks belonging to their team.
+     * @deny (list) Listing webhooks is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /webhooks/{webhookId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to Job documents.
+     * @description Manages access to job documents.
      * @path /jobs/{jobId}
-     * @allow (create, update, delete) Authenticated user can modify a job if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a job.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create jobs for their team.
+     * @allow (get, update, delete) Authenticated users can access jobs belonging to their team.
+     * @deny (list) Listing jobs is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /jobs/{jobId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to SocialPost documents.
+     * @description Manages access to social post documents.
      * @path /socialPosts/{socialPostId}
-     * @allow (create, update, delete) Authenticated user can modify a social post if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a social post.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create social posts for their team.
+     * @allow (get, update, delete) Authenticated users can access social posts belonging to their team.
+     * @deny (list) Listing social posts is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /socialPosts/{socialPostId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to Task documents.
+     * @description Manages access to task documents.
      * @path /tasks/{taskId}
-     * @allow (create, update, delete) Authenticated user can modify a task if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a task.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create tasks for their team.
+     * @allow (get, update, delete) Authenticated users can access tasks belonging to their team.
+     * @deny (list) Listing tasks is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /tasks/{taskId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
     /**
-     * @description Grants access to Automation documents.
+     * @description Manages access to automation documents.
      * @path /automations/{automationId}
-     * @allow (create, update, delete) Authenticated user can modify an automation if they are in the same team.
-     * @deny (create, update, delete) Unauthenticated user cannot modify an automation.
-     * @principle Enforces team-based access control for writes.
+     * @allow (create) Authenticated users can create automations for their team.
+     * @allow (get, update, delete) Authenticated users can access automations belonging to their team.
+     * @deny (list) Listing automations is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /automations/{automationId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
-     /**
-     * @description Grants access to ClientProfile documents.
+    /**
+     * @description Manages access to client profile documents.
      * @path /clientProfiles/{clientProfileId}
-     * @allow (create, update, delete) Authenticated user can modify a client profile if they are the owner.
-     * @deny (create, update, delete) Unauthenticated user cannot modify a client profile.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) Authenticated users can create client profiles for their team.
+     * @allow (get, update, delete) Authenticated users can access client profiles belonging to their team.
+     * @deny (list) Listing client profiles is not allowed.
+     * @principle Enforces team-based access control.
      */
     match /clientProfiles/{clientProfileId} {
-      allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow get: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
+      allow list: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow update: if isSignedIn() && resource.data.teamId == request.auth.token.team_id && request.resource.data.keys().hasAll(['teamId']) && request.resource.data.teamId == request.auth.token.team_id;
+      allow delete: if isSignedIn() && resource.data.teamId == request.auth.token.team_id;
     }
 
-     /**
-      * @description Manages access to DAO proposal documents.
-      * @path /dao_proposals/{proposalId}
-      * @allow (get, list) Public read access is enabled.
-      * @allow (create, update, delete) Only the author can modify.
-      * @principle Public read, owner-only write access for DAO proposals.
-      */
+    /**
+     * @description Rule for DAO Proposals
+     * @path /dao_proposals/{proposalId}
+     * @allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+     * @allow get, list: if true;
+     * @allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid && resource != null;
+     * @principle Allows any signed-in user to create a proposal with their userId as authorId, and author can modify it later
+     */
     match /dao_proposals/{proposalId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if false;
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['authorId']) && request.resource.data.authorId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.keys().hasAll(['authorId']) && resource.data.authorId == request.auth.uid;
+      allow delete: if isSignedIn() && resource.data.keys().hasAll(['authorId']) && resource.data.authorId == request.auth.uid;
     }
 
     /**
-      * @description Manages access to DAO vote documents.
-      * @path /dao_votes/{voteId}
-      * @allow (create, update, delete) Only the voter can create/modify their vote.
-      * @principle Owner-only writes for DAO votes.
-      */
+     * @description Rule for DAO Votes
+     * @path /dao_votes/{voteId}
+     * @allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+     * @allow get, list: if true; // Potentially restrict list access later
+     * @allow update, delete: if false; // Votes should not be modified or deleted
+     * @principle Restricts vote creation to the voter only; no updates/deletes allowed.
+     */
     match /dao_votes/{voteId} {
       allow get, list: if true;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.keys().hasAll(['userId']) && request.resource.data.userId == request.auth.uid;
+      allow update: if false;
       allow delete: if false;
     }
 
     /**
-      * @description Manages access to DAO decision documents.
-      * @path /dao_decisions/{decisionId}
-      * @allow (get, list) Public read access is enabled.
-      * @allow (create, update, delete) Restrict writes for DAO decisions.
-      * @principle Public read, restricted writes for DAO decisions.
-      */
+     * @description Rule for DAO Decisions
+     * @path /dao_decisions/{decisionId}
+     * @allow get, list: if true; // Decisions are public
+     * @allow create, update, delete: if false; // Should only be created/updated by backend logic
+     * @principle Decisions are read-only to clients
+     */
     match /dao_decisions/{decisionId} {
       allow get, list: if true;
       allow create: if false;
@@ -292,40 +402,33 @@ service cloud.firestore {
     }
 
     /**
-     * @description Manages access to real-time infrastructure usage metrics.
+     * @description Rule for Infra Usage metrics
      * @path /infra_usage/{usageId}
-     * @allow (get, list) Public read access is enabled.
-     * @allow (create, update, delete) Only authorized services can write.
-     * @principle Public read, service-only writes for infrastructure usage.
+     * @allow get, list: if false; // Generally not exposed to the client
+     * @allow create, update, delete: if false; // Created by internal monitoring
+     * @principle Only the backend can write usage data
      */
     match /infra_usage/{usageId} {
-      allow get, list: if true;
+      allow get: if false;
+      allow list: if false;
       allow create: if false;
       allow update: if false;
       allow delete: if false;
     }
 
     /**
-     * @description Manages access to infrastructure log entries.
+     * @description Rule for Infra Logs
      * @path /infra_logs/{logId}
-     * @allow (get, list) Public read access is enabled.
-     * @allow (create, update, delete) Only authorized services can write.
-     * @principle Public read, service-only writes for infrastructure logs.
+     * @allow get, list: if false; // Generally not exposed to the client
+     * @allow create, update, delete: if false; // Created by internal logging
+     * @principle Only the backend can write log data
      */
     match /infra_logs/{logId} {
-      allow get, list: if true;
+      allow get: if false;
+      allow list: if false;
       allow create: if false;
       allow update: if false;
       allow delete: if false;
-    }
-
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return request.auth.uid == userId;
     }
   }
 }
