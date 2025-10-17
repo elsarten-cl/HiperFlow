@@ -1020,7 +1020,7 @@
         }
       },
       {
-        "path": "/pipelines/{pipelineId}/stages/{stageId}",
+        "path": "/stages/{stageId}",
         "definition": {
           "entityName": "Stage",
           "schema": {
@@ -1028,10 +1028,6 @@
           },
           "description": "Represents a stage in a pipeline.",
           "params": [
-            {
-              "name": "pipelineId",
-              "description": "Unique identifier for the pipeline."
-            },
             {
               "name": "stageId",
               "description": "Unique identifier for the stage."
@@ -1261,6 +1257,8 @@
         }
       }
     ],
-    "reasoning": "The Firestore data structure has been flattened to use root-level collections for all major entities (e.g., /users, /contacts, /companies). This change is a diagnostic step to resolve a persistent and unusual permissions issue where nested collections under '/teams/{teamId}' were inaccessible despite permissive security rules. By moving collections to the root, we eliminate the complexity of path matching in security rules, simplifying the access control logic. The 'teamId' is retained as a field within each document to maintain data scoping for multi-tenancy, which can be enforced through query constraints in the application logic and eventually in refined security rules. This flattened structure provides a more direct access pattern, which should bypass the suspected underlying issue with rule evaluation on nested paths in the current project environment."
+    "reasoning": "The Firestore data structure has been flattened to use root-level collections for all major entities (e.g., /users, /contacts, /companies). This change is a diagnostic step to resolve a persistent and unusual permissions issue where nested collections were inaccessible despite permissive security rules. By moving collections to the root, we eliminate the complexity of path matching in security rules, simplifying the access control logic. The 'teamId' is retained as a field within each document to maintain data scoping for multi-tenancy, which can be enforced through query constraints in the application logic and eventually in refined security rules. This flattened structure provides a more direct access pattern, which should bypass the suspected underlying issue with rule evaluation on nested paths in the current project environment."
   }
 }
+
+    
