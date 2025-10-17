@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -406,7 +407,7 @@ export const KanbanBoard = () => {
                 dealId: dealToMove.id,
                 contactId: dealToMove.contact?.id || '',
                 teamId: dealToMove.teamId,
-                actor: user.email,
+                actor: user.email || user.uid,
             };
             batch.set(doc(activitiesCollection), activityData);
             
