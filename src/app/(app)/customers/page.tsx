@@ -45,6 +45,7 @@ import { useUser } from '@/firebase';
 import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useDebounce } from '@/hooks/use-debounce';
+import { Textarea } from '@/components/ui/textarea';
 
 
 const stageConfig: Record<string, { icon: React.ElementType; color: string; name: string; }> = {
@@ -206,7 +207,6 @@ export default function CustomersPage() {
   const [editingContact, setEditingContact] = useState<WithId<Contact> | null>(null);
   const [isNewContactSheetOpen, setIsNewContactSheetOpen] = useState(false);
   const [isDealSheetOpen, setIsDealSheetOpen] = useState(false);
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   
   const [dealContact, setDealContact] = useState<WithId<Contact> | null>(null);
   const [dealCompany, setDealCompany] = useState<WithId<Company> | undefined>(undefined);
@@ -221,6 +221,7 @@ export default function CustomersPage() {
     hasCompany: false,
     dateRange: { from: undefined as Date | undefined, to: undefined as Date | undefined },
   });
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
 
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -229,7 +230,7 @@ export default function CustomersPage() {
 
   // --- Data Fetching Logic ---
   const [contacts, setContacts] = useState<WithId<Contact>[]>([]);
-  const [lastVisible, setLastVisible] = useState<Timestamp | null>(null);
+  const [lastVisible, setLastVisible] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
 
@@ -256,7 +257,7 @@ export default function CustomersPage() {
   }, [dealsForSelectedContact]);
 
   const fetchContacts = useCallback(async (loadMore = false) => {
-    if (!firestore || !hasMore && loadMore) return;
+    if (!firestore || (!hasMore && loadMore)) return;
     
     setIsLoading(true);
     
@@ -265,46 +266,61 @@ export default function CustomersPage() {
     if(filters.hasCompany) constraints.push(where('companyId', '!=', ''));
     if(filters.dateRange.from) constraints.push(where('createdAt', '>=', filters.dateRange.from));
     if(filters.dateRange.to) constraints.push(where('createdAt', '<=', filters.dateRange.to));
-    // Firestore limitation: cannot combine range filters with array-contains or inequality on different fields.
+    // Firestore limitation: cannot combine range filters with inequality on different fields.
     // Client-side filtering will be necessary for stages/status/search for now.
     
-    constraints.push(orderBy('createdAt', 'desc'));
+    // ERROR FIX: Do not order by a field that is used in a range filter.
+    if (!filters.dateRange.from) {
+        constraints.push(orderBy('createdAt', 'desc'));
+    }
+    
     if(loadMore && lastVisible) constraints.push(startAfter(lastVisible));
     constraints.push(limit(20));
 
-    const q = query(collection(firestore, 'contacts'), ...constraints);
+    try {
+        const q = query(collection(firestore, 'contacts'), ...constraints);
 
-    const querySnapshot = await getDocs(q);
-    const newContacts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WithId<Contact>));
-    const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+        const querySnapshot = await getDocs(q);
+        const newContacts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WithId<Contact>));
+        const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
 
-    setHasMore(newContacts.length === 20);
-    setLastVisible(lastDoc ? lastDoc.data().createdAt as Timestamp : null);
-    
-    let processedContacts = newContacts;
+        setHasMore(newContacts.length === 20);
+        setLastVisible(lastDoc || null);
+        
+        let processedContacts = newContacts;
 
-    // Client-side filtering
-    if (debouncedSearchTerm) {
-      const lowerCaseSearch = debouncedSearchTerm.toLowerCase();
-      processedContacts = processedContacts.filter(c => 
-        c.name.toLowerCase().includes(lowerCaseSearch) ||
-        c.email.toLowerCase().includes(lowerCaseSearch) ||
-        c.phone?.includes(lowerCaseSearch) ||
-        (c.companyId && companyMap.get(c.companyId)?.toLowerCase().includes(lowerCaseSearch))
-      );
+        // Client-side filtering for search term
+        if (debouncedSearchTerm) {
+          const lowerCaseSearch = debouncedSearchTerm.toLowerCase();
+          processedContacts = processedContacts.filter(c => 
+            c.name.toLowerCase().includes(lowerCaseSearch) ||
+            c.email.toLowerCase().includes(lowerCaseSearch) ||
+            c.phone?.includes(lowerCaseSearch) ||
+            (c.companyId && companyMap.get(c.companyId)?.toLowerCase().includes(lowerCaseSearch))
+          );
+        }
+        
+        setContacts(prev => loadMore ? [...prev, ...processedContacts] : processedContacts);
+
+    } catch (error) {
+        console.error("Error fetching contacts:", error);
+        toast({
+            title: "Error de Consulta",
+            description: "No se pudieron cargar los clientes. Es posible que falte un índice en Firestore.",
+            variant: "destructive"
+        });
+    } finally {
+        setIsLoading(false);
     }
-    // Note: Stage and status filtering will also need to be client-side if combined with range filters.
-    
-    setContacts(prev => loadMore ? [...prev, ...processedContacts] : processedContacts);
-    setIsLoading(false);
+  }, [firestore, teamId, debouncedSearchTerm, filters, lastVisible, hasMore, companyMap, toast]);
 
-  }, [firestore, teamId, debouncedSearchTerm, filters, lastVisible, hasMore, companyMap]);
 
   useEffect(() => {
     setContacts([]);
     setLastVisible(null);
     setHasMore(true);
     fetchContacts(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, filters]);
 
 
@@ -350,13 +366,14 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
     const companyName = formData.companyName?.trim();
 
     if (companyName) {
-        const companiesCollection = collection(firestore, 'companies');
-        const q = query(companiesCollection, where('name', '==', companyName), where('teamId', '==', teamId));
-        
-        const querySnapshot = await getDocs(q);
-        if (!querySnapshot.empty) {
-            companyId = querySnapshot.docs[0].id;
-        } else {
+        if (companies) {
+          const existingCompany = companies.find(c => c.name.toLowerCase() === companyName.toLowerCase());
+          if (existingCompany) {
+            companyId = existingCompany.id;
+          }
+        }
+        if (!companyId) {
+            const companiesCollection = collection(firestore, 'companies');
             const newCompanyData = {
                 name: companyName, teamId: teamId, createdAt: serverTimestamp(), updatedAt: serverTimestamp()
             } as Company;
@@ -427,7 +444,7 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
   ).length;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-[calc(100vh-8rem)] flex flex-col">
       <PageHeader
         title="Clientes"
         description="Centraliza la información de tus clientes en un solo lugar, con historial, contexto y acciones conectadas."
@@ -452,16 +469,16 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
             </div>
         </div>
       
-      <div className="flex-1 -mt-8">
-        <Card className="overflow-hidden h-full">
-          <ScrollArea className="h-full" onScrollCapture={(e) => {
+      <div className="flex-1 mt-0">
+        <Card className="overflow-hidden h-full flex flex-col">
+          <ScrollArea className="flex-1" onScrollCapture={(e) => {
               const target = e.target as HTMLDivElement;
-              if(target.scrollHeight - target.scrollTop < target.clientHeight + 100 && hasMore && !isLoading){
+              if(target.scrollHeight - target.scrollTop < target.clientHeight + 200 && hasMore && !isLoading){
                   fetchContacts(true);
               }
           }}>
             <Table>
-              <TableHeader>
+              <TableHeader className="sticky top-0 bg-background z-10">
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Empresa</TableHead>
@@ -476,7 +493,7 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
                   <TableRow><TableCell colSpan={6} className="h-24 text-center">No se encontraron clientes.</TableCell></TableRow>
                 ) : (
                   contacts.map((contact) => {
-                    const companyName = companyMap.get(contact.companyId) || 'N/A';
+                    const companyName = companyMap.get(contact.companyId) || '-';
                     const leadStatus = getLeadStatus(contact);
                     const statusInfo = leadStatusConfig[leadStatus];
 
@@ -519,7 +536,7 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
                 })
                 )}
                 {isLoading && (
-                  <TableRow><TableCell colSpan={6} className="text-center">Cargando...</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={6} className="h-24 text-center">Cargando más clientes...</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -564,5 +581,3 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
     </div>
   );
 }
-
-    
