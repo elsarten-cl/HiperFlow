@@ -268,7 +268,7 @@ export default function CustomersPage() {
     // Firestore limitation: cannot combine range filters with array-contains or inequality on different fields.
     // Client-side filtering will be necessary for stages/status/search for now.
     
-    constraints.push(orderBy('createdAt', 'desc'));
+    constraints.push(orderBy('createdAt', 'desc')); // FIX: Order by a single field to avoid composite index
     if(loadMore && lastVisible) constraints.push(startAfter(lastVisible));
     constraints.push(limit(20));
 
@@ -438,21 +438,19 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
         </Button>
       </PageHeader>
       
-      <Card className="mb-8">
-        <CardContent className="p-4 flex flex-col md:flex-row items-center gap-4">
+        <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
             <div className="relative w-full md:w-auto md:flex-grow">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Buscar por nombre, email, empresa o teléfono..." className="pl-8 w-full" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 w-full md:w-auto">
                 <Button variant="outline" className="w-full md:w-auto" onClick={() => setIsFilterPanelOpen(true)}>
                     <ListFilter className="mr-2 h-4 w-4" />
                     Filtrar
                     {activeFiltersCount > 0 && <Badge variant="secondary" className="ml-2">{activeFiltersCount}</Badge>}
                 </Button>
             </div>
-        </CardContent>
-      </Card>
+        </div>
       
       <div className="flex-1 -mt-8">
         <Card className="overflow-hidden h-full">
