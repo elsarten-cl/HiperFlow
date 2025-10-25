@@ -33,7 +33,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking
 } from '@/firebase';
-import { collection, doc, query, where, serverTimestamp } from 'firebase/firestore';
+import { collection, doc, query, where, serverTimestamp, getDocs } from 'firebase/firestore';
 import type { Contact, Company, Deal } from '@/lib/types';
 import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2, UserCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -272,24 +272,56 @@ export default function CustomersPage() {
     setIsDealSheetOpen(false);
   };
   
-  const handleSaveContact = (formData: Partial<Contact>) => {
+const handleSaveContact = async (formData: Partial<Contact> & { companyName?: string }) => {
     if (!firestore || !user) return;
+
+    let companyId = '';
+    const companyName = formData.companyName?.trim();
+
+    // Logic to find or create a company
+    if (companyName) {
+        const companiesCollection = collection(firestore, 'companies');
+        const q = query(companiesCollection, where('name', '==', companyName), where('teamId', '==', teamId));
+        
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+            // Company exists
+            companyId = querySnapshot.docs[0].id;
+        } else {
+            // Company does not exist, create it
+            const newCompanyData = {
+                name: companyName,
+                teamId: teamId,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            };
+            const newCompanyRef = await addDocumentNonBlocking(companiesCollection, newCompanyData as Company);
+            if (newCompanyRef) {
+                companyId = newCompanyRef.id;
+            }
+        }
+    }
+
+    // Prepare contact data
+    const contactData: Partial<Contact> = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      jobTitle: formData.jobTitle,
+      companyId: companyId,
+      teamId: teamId,
+      updatedAt: serverTimestamp(),
+    };
 
     if (editingContact) {
       // Update existing contact
       const contactRef = doc(firestore, 'contacts', editingContact.id);
-      updateDocumentNonBlocking(contactRef, { ...formData, updatedAt: serverTimestamp() });
+      updateDocumentNonBlocking(contactRef, contactData);
       toast({ title: "Cliente Actualizado", description: "La información del cliente ha sido actualizada." });
     } else {
       // Create new contact
       const contactsCollection = collection(firestore, 'contacts');
-      const newContact = {
-        ...formData,
-        teamId,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      };
-      addDocumentNonBlocking(contactsCollection, newContact as Contact);
+      addDocumentNonBlocking(contactsCollection, { ...contactData, createdAt: serverTimestamp() } as Contact);
       toast({ title: "Cliente Creado", description: "El nuevo cliente ha sido añadido." });
     }
     handleCloseContactForm();

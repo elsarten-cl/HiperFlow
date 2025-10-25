@@ -29,16 +29,19 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
     phone: '',
     jobTitle: '',
     companyId: '',
+    companyName: '', // New field for text input
   });
 
   useEffect(() => {
     if (contact) {
+      const company = companies.find(c => c.id === contact.companyId);
       setFormData({
         name: contact.name || '',
         email: contact.email || '',
         phone: contact.phone || '',
         jobTitle: contact.jobTitle || '',
         companyId: contact.companyId || '',
+        companyName: company?.name || '', // Populate company name
       });
     } else {
         // Reset form for new contact
@@ -48,9 +51,10 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
             phone: '',
             jobTitle: '',
             companyId: '',
+            companyName: '',
         });
     }
-  }, [contact]);
+  }, [contact, companies]);
 
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -58,18 +62,19 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value === 'ninguna' ? '' : value }));
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const contactData: Partial<Contact> = {
+    // Here you would typically have logic to find or create a company
+    // For now, we'll just pass the name. A more robust solution would be needed.
+    const contactData: Partial<Contact> & { companyName?: string } = {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
       jobTitle: formData.jobTitle,
-      companyId: formData.companyId,
+      // This is a simplified logic. In a real app, you'd check if a company
+      // with `formData.companyName` exists, get its ID, or create a new one.
+      // For now, we are not setting companyId directly from the text input.
+      companyName: formData.companyName,
     };
     onSave(contactData);
   };
@@ -124,24 +129,14 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="companyId">Empresa (opcional)</Label>
-        <Select
-          name="companyId"
-          value={formData.companyId || 'ninguna'}
-          onValueChange={(value) => handleSelectChange('companyId', value)}
-        >
-          <SelectTrigger id="companyId">
-            <SelectValue placeholder="Selecciona una empresa" />
-          </SelectTrigger>
-          <SelectContent>
-             <SelectItem value="ninguna">Ninguna</SelectItem>
-            {companies.map((company) => (
-              <SelectItem key={company.id} value={company.id}>
-                {company.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Label htmlFor="companyName">Empresa (opcional)</Label>
+        <Input
+            id="companyName"
+            name="companyName"
+            value={formData.companyName}
+            onChange={handleChange}
+            placeholder="Escribe para buscar o crear una empresa"
+        />
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
