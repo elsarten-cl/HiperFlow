@@ -33,6 +33,12 @@ const nextConfig: NextConfig = {
         hostname: 'hiperflow.app.elsartenpro.com',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'emprendedores.app',
+        port: '',
+        pathname: '/**',
       }
     ],
   },
