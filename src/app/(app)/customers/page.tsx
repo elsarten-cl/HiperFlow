@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -36,7 +35,7 @@ import {
   setDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, query, where, serverTimestamp, getDocs, orderBy, Timestamp, startAfter, limit, QueryConstraint, updateDoc } from 'firebase/firestore';
-import type { Contact, Company, Deal, Activity } from '@/lib/types';
+import type { Contact, Company, Deal, Activity, WebhookPayload, getTimestampAsDate } from '@/lib/types';
 import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2, UserCircle, ListFilter, Copy, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn, normalizePhoneNumber } from '@/lib/utils';
@@ -48,8 +47,9 @@ import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Textarea } from '@/components/ui/textarea';
-import { getTimestampAsDate, simpleHash } from '@/components/kanban-board';
+import { simpleHash } from '@/components/kanban-board';
 
+const WEBHOOK_URL = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
 
 const stageConfig: Record<string, { icon: React.ElementType; color: string; name: string; }> = {
   potencial: { icon: Lightbulb, color: 'text-blue-400', name: 'Potencial' },
@@ -136,7 +136,7 @@ const CustomerDetailPanel = ({
                             </Button>
                         </div>
                     ) : (
-                        <Button variant="link" className="p-0 h-auto" onClick={() => onEditContact(contact)}>Agregar teléfono</Button>
+                        <Button variant="link" className="p-0 h-auto justify-start" onClick={() => onEditContact(contact)}>Agregar teléfono</Button>
                     )}
                 </div>
 
@@ -265,10 +265,17 @@ export default function CustomersPage() {
     setIsLoading(true);
     
     const constraints: QueryConstraint[] = [where('teamId', '==', teamId)];
-    if(filters.hasPhone) constraints.push(where('phone', '!=', null));
-    if(filters.hasCompany) constraints.push(where('companyId', '!=', ''));
-    if(filters.dateRange.from) constraints.push(where('createdAt', '>=', filters.dateRange.from));
-    if(filters.dateRange.to) constraints.push(where('createdAt', '<=', filters.dateRange.to));
+    if (filters.hasPhone) constraints.push(where('phone', '!=', null));
+    if (filters.hasCompany) constraints.push(where('companyId', '!=', ''));
+
+    // Only add date range filters if they exist
+    if (filters.dateRange.from) constraints.push(where('createdAt', '>=', filters.dateRange.from));
+    if (filters.dateRange.to) constraints.push(where('createdAt', '<=', filters.dateRange.to));
+
+    // Avoid ordering by createdAt when a date range filter is active to prevent index errors
+    if (!filters.dateRange.from && !filters.dateRange.to) {
+        constraints.push(orderBy('createdAt', 'desc'));
+    }
     
     if(loadMore && lastVisible) constraints.push(startAfter(lastVisible));
     constraints.push(limit(20));
@@ -343,9 +350,9 @@ export default function CustomersPage() {
     setIsNewContactSheetOpen(false);
   }
   
-  const handleSaveDeal = async (formData: Partial<Deal>) => {
-    if (!firestore || !user) return;
-     if (!formData.contact) {
+const handleSaveDeal = async (formData: Partial<Deal>) => {
+    if (!firestore || !user || !user.uid) return;
+    if (!formData.contact) {
       toast({
         title: 'Contacto Requerido',
         description: 'Por favor, selecciona un contacto para crear el flow.',
@@ -359,15 +366,20 @@ export default function CustomersPage() {
     const updatedAt = new Date().toISOString();
 
     const newDealData: Omit<Deal, 'id'> = {
-      ...formData,
+      title: formData.title || 'Nuevo Flow',
+      description: formData.description,
       teamId,
       stage: 'potencial',
+      amount: formData.amount || 0,
+      currency: formData.currency || 'CLP',
+      contact: formData.contact,
+      company: formData.company,
+      lastActivity: timestamp,
       ownerId: user.uid,
       status: 'activo',
       createdAt: timestamp,
       updatedAt: timestamp,
-      lastActivity: timestamp,
-    } as Omit<Deal, 'id'>;
+    };
 
     const newDealRef = await addDocumentNonBlocking(dealsCollection, newDealData);
     if (!newDealRef) {
@@ -383,29 +395,42 @@ export default function CustomersPage() {
     const eventId = simpleHash(`${dealId}-${updatedAt}`);
     const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
 
-    const outboxData = {
-        eventId, dealId, status: "pending", createdAt: timestamp
-    };
+    const outboxData = { eventId, dealId, status: "pending", createdAt: timestamp };
     setDocumentNonBlocking(automationOutboxRef, outboxData, {});
 
-    const webhookUrl = "https://hook.us2.make.com/mjxphljdr72s3w6x7cqr2eb3av6955iu";
     const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
 
-    const payload = {
+    const payload: WebhookPayload = {
       eventType: "saleflow.deal.created",
-      eventId, dealId, title: newDealData.title,
-      description: (newDealData as any).description || null,
-      stage: newDealData.stage,
-      value: newDealData.amount, currency: newDealData.currency,
-      clientName: newDealData.contact?.name, companyName: newDealData.company?.name,
-      contactEmail: newDealData.contact?.email, ownerUserId: newDealData.ownerId,
-      ownerEmail: user.email,
-      createdAt: updatedAt, updatedAt,
-      appUrl: `${appBaseUrl}/saleflow?dealId=${dealId}`
+      eventId,
+      dealId,
+      title: newDealData.title,
+      description: newDealData.description || null,
+      previousStage: null,
+      newStage: 'potencial',
+      value: newDealData.amount,
+      currency: newDealData.currency,
+      client: {
+        id: newDealData.contact?.id || null,
+        name: newDealData.contact?.name || null,
+        email: newDealData.contact?.email || null,
+        phone: newDealData.contact?.phone || null,
+      },
+      company: {
+        name: newDealData.company?.name || null
+      },
+      owner: {
+        userId: newDealData.ownerId,
+        email: user.email,
+      },
+      createdAt: updatedAt,
+      updatedAt,
+      appUrl: appBaseUrl,
+      dealUrl: `${appBaseUrl}/saleflow?dealId=${dealId}`,
     };
 
     const startTime = Date.now();
-    fetch(webhookUrl, {
+    fetch(WEBHOOK_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     }).then(async (response) => {
       const responseTimeMs = Date.now() - startTime;
@@ -447,11 +472,11 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
         }
     }
 
-    const contactData = {
+    const contactData: Partial<Contact> & { searchIndex: string[] } = {
       name: formData.name, email: formData.email, phone: formData.phone, phoneNormalized,
       jobTitle: formData.jobTitle, companyId: companyId || formData.companyId, teamId: teamId,
       updatedAt: serverTimestamp(),
-      searchIndex: [formData.name?.toLowerCase(), formData.email?.toLowerCase(), companyName?.toLowerCase(), formData.phone].filter(Boolean)
+      searchIndex: [formData.name?.toLowerCase(), formData.email?.toLowerCase(), companyName?.toLowerCase(), formData.phone].filter(Boolean) as string[]
     };
 
     if (editingContact) {

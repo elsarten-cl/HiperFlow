@@ -24,8 +24,10 @@ import {
   setDocumentNonBlocking,
 } from '@/firebase';
 import { collection, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
-import type { Contact, Company, Deal } from '@/lib/types';
-import { getTimestampAsDate, simpleHash } from '@/components/kanban-board';
+import type { Contact, Company, Deal, WebhookPayload, getTimestampAsDate } from '@/lib/types';
+import { simpleHash } from '@/components/kanban-board';
+
+const WEBHOOK_URL = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
 
 export default function SaleFlowPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -70,6 +72,7 @@ export default function SaleFlowPage() {
 
     const newDealData: Omit<Deal, 'id'> = {
       title: formData.title || 'Nuevo Flow',
+      description: formData.description,
       teamId: 'team-1',
       stage: 'potencial',
       amount: formData.amount || 0,
@@ -106,34 +109,43 @@ export default function SaleFlowPage() {
         eventId: eventId,
         dealId: dealId,
         status: "pending",
-        createdAt: timestamp
+        createdAt: timestamp,
     };
     setDocumentNonBlocking(automationOutboxRef, outboxData, {});
 
-    const webhookUrl = "https://hook.us2.make.com/mjxphljdr72s3w6x7cqr2eb3av6955iu";
     const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
 
-    const payload = {
+    const payload: WebhookPayload = {
       eventType: "saleflow.deal.created",
       eventId: eventId,
       dealId: dealId,
       title: newDealData.title,
-      description: (newDealData as any).description || null,
-      stage: newDealData.stage,
+      description: newDealData.description || null,
+      previousStage: null,
+      newStage: 'potencial',
       value: newDealData.amount,
       currency: newDealData.currency,
-      clientName: newDealData.contact?.name,
-      companyName: newDealData.company?.name,
-      contactEmail: newDealData.contact?.email,
-      ownerUserId: newDealData.ownerId,
-      ownerEmail: user.email,
-      createdAt: updatedAt, // Using current time as serverTimestamp isn't resolved yet
+      client: {
+        id: newDealData.contact?.id || null,
+        name: newDealData.contact?.name || null,
+        email: newDealData.contact?.email || null,
+        phone: newDealData.contact?.phone || null,
+      },
+      company: {
+          name: newDealData.company?.name || null
+      },
+      owner: {
+          userId: newDealData.ownerId,
+          email: user.email,
+      },
+      createdAt: updatedAt, 
       updatedAt: updatedAt,
-      appUrl: `${appBaseUrl}/saleflow?dealId=${dealId}`
+      appUrl: appBaseUrl,
+      dealUrl: `${appBaseUrl}/saleflow?dealId=${dealId}`,
     };
 
     const startTime = Date.now();
-    fetch(webhookUrl, {
+    fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

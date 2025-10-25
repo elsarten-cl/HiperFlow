@@ -12,7 +12,7 @@ import {
   FirestorePermissionError,
   setDocumentNonBlocking,
 } from '@/firebase';
-import { type Deal, type DealStage, type Automation } from '@/lib/types';
+import { type Deal, type DealStage, type WebhookPayload, getTimestampAsDate } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -47,6 +47,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+
+
+const WEBHOOK_URL = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
 
 const stageConfig: Record<
   DealStage,
@@ -112,23 +115,6 @@ const stageConfig: Record<
   },
 };
 
-export const getTimestampAsDate = (timestamp: any): Date | null => {
-    if (!timestamp) return null;
-    if (timestamp instanceof Date) return timestamp;
-    if (typeof timestamp === 'string') {
-        const d = new Date(timestamp);
-        return isValid(d) ? d : null;
-    }
-    if (timestamp && typeof timestamp.seconds === 'number') {
-        const d = new Date(timestamp.seconds * 1000 + (timestamp.nanoseconds || 0) / 1000000);
-        return isValid(d) ? d : null;
-    }
-    if (timestamp && typeof timestamp.toDate === 'function') {
-        const d = timestamp.toDate();
-        return isValid(d) ? d : null;
-    }
-    return null;
-}
 
 // Simple hash function for eventId
 export const simpleHash = (str: string) => {
@@ -439,30 +425,39 @@ export const KanbanBoard = () => {
             });
             
             // 4. Send webhook (optimistically, after committing the batch)
-            const webhookUrl = "https://hook.us2.make.com/mjxphljdr72s3w6x7cqr2eb3av6955iu";
             const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
-            const payload = {
+            
+            const payload: WebhookPayload = {
                 eventType: "saleflow.stage.changed",
                 eventId: eventId,
                 dealId: dealToMove.id,
                 title: dealToMove.title,
-                description: (dealToMove as any).description || null,
+                description: dealToMove.description || null,
                 previousStage: dealToMove.stage,
                 newStage: newStage,
                 value: dealToMove.amount,
                 currency: dealToMove.currency,
-                clientName: dealToMove.contact?.name,
-                companyName: dealToMove.company?.name,
-                contactEmail: dealToMove.contact?.email,
-                ownerUserId: dealToMove.ownerId,
-                ownerEmail: user.email,
-                createdAt: getTimestampAsDate(dealToMove.createdAt)?.toISOString(),
+                client: {
+                    id: dealToMove.contact?.id || null,
+                    name: dealToMove.contact?.name || null,
+                    email: dealToMove.contact?.email || null,
+                    phone: dealToMove.contact?.phone || null,
+                },
+                company: {
+                    name: dealToMove.company?.name || null,
+                },
+                owner: {
+                    userId: dealToMove.ownerId,
+                    email: user.email,
+                },
+                createdAt: getTimestampAsDate(dealToMove.createdAt)?.toISOString() || new Date().toISOString(),
                 updatedAt: updatedAt,
-                appUrl: `${appBaseUrl}/saleflow?dealId=${dealToMove.id}`
+                appUrl: appBaseUrl,
+                dealUrl: `${appBaseUrl}/saleflow?dealId=${dealToMove.id}`,
             };
 
             const startTime = Date.now();
-            fetch(webhookUrl, {
+            fetch(WEBHOOK_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

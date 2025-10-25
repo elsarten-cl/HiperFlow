@@ -30,6 +30,7 @@ export function DealForm({ onSave, onCancel, contacts, companies, deal }: DealFo
     companyId: deal?.company?.id || '',
     amount: deal?.amount || 0,
     currency: deal?.currency || 'CLP',
+    description: deal?.description || '',
     nextAction: deal?.nextAction || '',
   });
 
@@ -49,10 +50,11 @@ export function DealForm({ onSave, onCancel, contacts, companies, deal }: DealFo
 
     const dealData: Partial<Deal> = {
       title: formData.title,
+      description: formData.description,
       amount: Number(formData.amount),
       currency: formData.currency as 'CLP' | 'USD',
       nextAction: formData.nextAction,
-      contact: selectedContact ? { id: selectedContact.id, name: selectedContact.name, email: selectedContact.email } : undefined,
+      contact: selectedContact ? { id: selectedContact.id, name: selectedContact.name, email: selectedContact.email, phone: selectedContact.phone } : undefined,
       company: selectedCompany ? { id: selectedCompany.id, name: selectedCompany.name } : undefined,
     };
     onSave(dealData);
@@ -69,6 +71,17 @@ export function DealForm({ onSave, onCancel, contacts, companies, deal }: DealFo
           onChange={handleChange}
           placeholder="Ej: Desarrollo de nuevo e-commerce"
           required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Descripción (opcional)</Label>
+        <Textarea
+          id="description"
+          name="description"
+          value={formData.description}
+          onChange={handleChange}
+          placeholder="Añade detalles sobre la oportunidad..."
         />
       </div>
 

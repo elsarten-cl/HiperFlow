@@ -1,3 +1,5 @@
+'use client';
+
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export type Contact = {
@@ -42,10 +44,12 @@ export type Deal = {
   stage: DealStage;
   amount: number;
   currency: "CLP" | "USD";
+  description?: string;
   contact?: {
     id: string;
     name: string;
     email?: string;
+    phone?: string | null;
   };
   company?: {
     id: string;
@@ -209,5 +213,47 @@ export type AutomationOutbox = {
     responseTimeMs?: number;
     lastError?: string;
     retryCount?: number;
-    payload?: any;
+    payload?: WebhookPayload;
 }
+
+// --- Webhook Payloads ---
+export interface BaseWebhookPayload {
+  eventType: 'saleflow.deal.created' | 'saleflow.stage.changed';
+  eventId: string;
+  dealId: string;
+  title: string;
+  description: string | null;
+  value: number | null;
+  currency: string | null;
+  client: {
+    id: string | null;
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+  };
+  company: {
+    name: string | null;
+  };
+  owner: {
+    userId: string | null;
+    email: string | null;
+  };
+  createdAt: string;
+  updatedAt: string;
+  appUrl: string;
+  dealUrl: string;
+}
+
+export interface DealCreatedEvent extends BaseWebhookPayload {
+  eventType: 'saleflow.deal.created';
+  previousStage: null;
+  newStage: 'potencial';
+}
+
+export interface StageChangedEvent extends BaseWebhookPayload {
+  eventType: 'saleflow.stage.changed';
+  previousStage: string;
+  newStage: string;
+}
+
+export type WebhookPayload = DealCreatedEvent | StageChangedEvent;
