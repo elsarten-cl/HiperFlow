@@ -4,19 +4,13 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import type { Contact, Company } from '@/lib/types';
 import { WithId } from '@/firebase';
+import { normalizePhoneNumber } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 interface ContactFormProps {
-  onSave: (contact: Partial<Contact>) => void;
+  onSave: (contact: Partial<Contact> & { companyName?: string }) => void;
   onCancel: () => void;
   companies: WithId<Company>[];
   contact?: WithId<Contact> | null;
@@ -29,8 +23,10 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
     phone: '',
     jobTitle: '',
     companyId: '',
-    companyName: '', // New field for text input
+    companyName: '',
   });
+  const [phoneHelperText, setPhoneHelperText] = useState('');
+  const { toast } = useToast();
 
   useEffect(() => {
     if (contact) {
@@ -41,46 +37,40 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
         phone: contact.phone || '',
         jobTitle: contact.jobTitle || '',
         companyId: contact.companyId || '',
-        companyName: company?.name || '', // Populate company name
+        companyName: company?.name || contact.companyId || '',
       });
     } else {
-        // Reset form for new contact
-        setFormData({
-            name: '',
-            email: '',
-            phone: '',
-            jobTitle: '',
-            companyId: '',
-            companyName: '',
-        });
+        setFormData({ name: '', email: '', phone: '', jobTitle: '', companyId: '', companyName: '' });
     }
   }, [contact, companies]);
 
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handlePhoneBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const originalPhone = e.target.value;
+    if (!originalPhone) {
+        setPhoneHelperText('');
+        return;
+    }
+    const normalized = normalizePhoneNumber(originalPhone);
+    if (normalized) {
+        setPhoneHelperText(`Se guardará como: ${normalized}`);
+    } else {
+        setPhoneHelperText('El número no parece tener un formato estándar. Se guardará tal cual.');
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically have logic to find or create a company
-    // For now, we'll just pass the name. A more robust solution would be needed.
-    const contactData: Partial<Contact> & { companyName?: string } = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      jobTitle: formData.jobTitle,
-      // This is a simplified logic. In a real app, you'd check if a company
-      // with `formData.companyName` exists, get its ID, or create a new one.
-      // For now, we are not setting companyId directly from the text input.
-      companyName: formData.companyName,
-    };
-    onSave(contactData);
+    onSave(formData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6 py-4">
       <div className="space-y-2">
         <Label htmlFor="name">Nombre del Cliente</Label>
         <Input
@@ -113,8 +103,10 @@ export function ContactForm({ onSave, onCancel, companies, contact }: ContactFor
           name="phone"
           value={formData.phone}
           onChange={handleChange}
+          onBlur={handlePhoneBlur}
           placeholder="Ej: +56 9 1234 5678"
         />
+        {phoneHelperText && <p className="text-xs text-muted-foreground">{phoneHelperText}</p>}
       </div>
 
        <div className="space-y-2">

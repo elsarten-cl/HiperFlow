@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -23,10 +23,8 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-    DropdownMenuCheckboxItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   useCollection,
   useFirestore,
@@ -34,19 +32,20 @@ import {
   WithId,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
-  deleteDocumentNonBlocking
 } from '@/firebase';
-import { collection, doc, query, where, serverTimestamp, getDocs } from 'firebase/firestore';
-import type { Contact, Company, Deal } from '@/lib/types';
-import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2, UserCircle, ListFilter } from 'lucide-react';
+import { collection, doc, query, where, serverTimestamp, getDocs, orderBy, Timestamp, startAfter, limit, QueryConstraint } from 'firebase/firestore';
+import type { Contact, Company, Deal, Activity } from '@/lib/types';
+import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2, UserCircle, ListFilter, Copy, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Textarea } from '@/components/ui/textarea';
+import { cn, normalizePhoneNumber } from '@/lib/utils';
 import { DealForm } from '@/components/deal-form';
 import { ContactForm } from '@/components/contact-form';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
+import { format, isValid } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { useDebounce } from '@/hooks/use-debounce';
+
 
 const stageConfig: Record<string, { icon: React.ElementType; color: string; name: string; }> = {
   potencial: { icon: Lightbulb, color: 'text-blue-400', name: 'Potencial' },
@@ -61,6 +60,7 @@ const leadStatusConfig: Record<string, { color: string; name: string; }> = {
     nuevo: { color: 'bg-blue-500/20 text-blue-300', name: 'Nuevo' },
     'en seguimiento': { color: 'bg-yellow-500/20 text-yellow-300', name: 'En Seguimiento' },
     'cliente activo': { color: 'bg-green-500/20 text-green-300', name: 'Cliente Activo' },
+    inactivo: { color: 'bg-gray-500/20 text-gray-400', name: 'Inactivo' },
 };
 
 
@@ -79,11 +79,17 @@ const CustomerDetailPanel = ({
   onOpenNewDeal: (contact: WithId<Contact>, company?: WithId<Company>) => void;
   onEditContact: (contact: WithId<Contact>) => void;
 }) => {
+  const { toast } = useToast();
 
   const getStageIcon = (stage: string) => {
     const config = stageConfig[stage];
     return config ? <config.icon className={cn("h-4 w-4", config.color)} /> : null;
   }
+  
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copiado al portapapeles" });
+  };
 
   return (
     <Sheet open={!!contact} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -112,16 +118,21 @@ const CustomerDetailPanel = ({
                     </div>
                 </SheetHeader>
 
-                <div className="grid grid-cols-2 gap-4 text-sm mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
                     <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-muted-foreground" />
                         <a href={`mailto:${contact.email}`} className="hover:underline">{contact.email}</a>
                     </div>
-                    {contact.phone && (
+                    {contact.phone ? (
                          <div className="flex items-center gap-2">
                             <Phone className="h-4 w-4 text-muted-foreground" />
-                            <a href={`tel:${contact.phone}`} className="hover:underline">{contact.phone}</a>
+                            <a href={`tel:${contact.phoneNormalized || contact.phone}`} className="hover:underline">{contact.phone}</a>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleCopy(contact.phoneNormalized || contact.phone || '')}>
+                              <Copy className="h-3 w-3" />
+                            </Button>
                         </div>
+                    ) : (
+                        <Button variant="link" className="p-0 h-auto" onClick={() => onEditContact(contact)}>Agregar teléfono</Button>
                     )}
                 </div>
 
@@ -190,41 +201,48 @@ const CustomerDetailPanel = ({
   );
 };
 
-
 export default function CustomersPage() {
   const [selectedContact, setSelectedContact] = useState<WithId<Contact> | null>(null);
   const [editingContact, setEditingContact] = useState<WithId<Contact> | null>(null);
   const [isNewContactSheetOpen, setIsNewContactSheetOpen] = useState(false);
   const [isDealSheetOpen, setIsDealSheetOpen] = useState(false);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  
   const [dealContact, setDealContact] = useState<WithId<Contact> | null>(null);
   const [dealCompany, setDealCompany] = useState<WithId<Company> | undefined>(undefined);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  
+  const [filters, setFilters] = useState({
+    stages: [] as string[],
+    status: '',
+    hasPhone: false,
+    hasCompany: false,
+    dateRange: { from: undefined as Date | undefined, to: undefined as Date | undefined },
+  });
 
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
   const teamId = 'team-1'; // Hardcoded for now
 
-  // Data fetching
-  const contactsRef = useMemoFirebase(() => (firestore ? query(collection(firestore, 'contacts'), where('teamId', '==', teamId)) : null), [firestore, teamId]);
-  const { data: contacts, isLoading: isLoadingContacts } = useCollection<Contact>(contactsRef);
+  // --- Data Fetching Logic ---
+  const [contacts, setContacts] = useState<WithId<Contact>[]>([]);
+  const [lastVisible, setLastVisible] = useState<Timestamp | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   const companiesRef = useMemoFirebase(() => (firestore ? query(collection(firestore, 'companies'), where('teamId', '==', teamId)) : null), [firestore, teamId]);
-  const { data: companies, isLoading: isLoadingCompanies } = useCollection<Company>(companiesRef);
+  const { data: companies } = useCollection<Company>(companiesRef);
 
   const dealsRef = useMemoFirebase(
-    () =>
-      selectedContact && firestore
-        ? query(collection(firestore, 'deals'), where('contact.id', '==', selectedContact.id))
-        : null,
+    () => selectedContact && firestore ? query(collection(firestore, 'deals'), where('contact.id', '==', selectedContact.id)) : null,
     [selectedContact, firestore]
   );
   const { data: dealsForSelectedContact } = useCollection<Deal>(dealsRef);
 
-  const companyMap = useMemo(() => {
-    if (!companies) return new Map();
-    return new Map(companies.map((c) => [c.id, c.name]));
-  }, [companies]);
-
+  const companyMap = useMemo(() => new Map(companies?.map((c) => [c.id, c.name])), [companies]);
   const dealsByContact = useMemo(() => {
     if(!dealsForSelectedContact) return {};
     const map: Record<string, WithId<Deal>[]> = {};
@@ -237,21 +255,69 @@ export default function CustomersPage() {
     return map;
   }, [dealsForSelectedContact]);
 
-  const handleRowClick = (contact: WithId<Contact>) => {
-    setSelectedContact(contact);
-  };
-  
+  const fetchContacts = useCallback(async (loadMore = false) => {
+    if (!firestore || !hasMore && loadMore) return;
+    
+    setIsLoading(true);
+    
+    const constraints: QueryConstraint[] = [where('teamId', '==', teamId)];
+    if(filters.hasPhone) constraints.push(where('phone', '!=', null));
+    if(filters.hasCompany) constraints.push(where('companyId', '!=', ''));
+    if(filters.dateRange.from) constraints.push(where('createdAt', '>=', filters.dateRange.from));
+    if(filters.dateRange.to) constraints.push(where('createdAt', '<=', filters.dateRange.to));
+    // Firestore limitation: cannot combine range filters with array-contains or inequality on different fields.
+    // Client-side filtering will be necessary for stages/status/search for now.
+    
+    constraints.push(orderBy('createdAt', 'desc'));
+    if(loadMore && lastVisible) constraints.push(startAfter(lastVisible));
+    constraints.push(limit(20));
+
+    const q = query(collection(firestore, 'contacts'), ...constraints);
+
+    const querySnapshot = await getDocs(q);
+    const newContacts = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as WithId<Contact>));
+    const lastDoc = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+    setHasMore(newContacts.length === 20);
+    setLastVisible(lastDoc ? lastDoc.data().createdAt as Timestamp : null);
+    
+    let processedContacts = newContacts;
+
+    // Client-side filtering
+    if (debouncedSearchTerm) {
+      const lowerCaseSearch = debouncedSearchTerm.toLowerCase();
+      processedContacts = processedContacts.filter(c => 
+        c.name.toLowerCase().includes(lowerCaseSearch) ||
+        c.email.toLowerCase().includes(lowerCaseSearch) ||
+        c.phone?.includes(lowerCaseSearch) ||
+        (c.companyId && companyMap.get(c.companyId)?.toLowerCase().includes(lowerCaseSearch))
+      );
+    }
+    // Note: Stage and status filtering will also need to be client-side if combined with range filters.
+    
+    setContacts(prev => loadMore ? [...prev, ...processedContacts] : processedContacts);
+    setIsLoading(false);
+
+  }, [firestore, teamId, debouncedSearchTerm, filters, lastVisible, hasMore, companyMap]);
+
+  useEffect(() => {
+    setContacts([]);
+    setLastVisible(null);
+    setHasMore(true);
+    fetchContacts(false);
+  }, [debouncedSearchTerm, filters]);
+
+
+  const handleRowClick = (contact: WithId<Contact>) => setSelectedContact(contact);
   const handleOpenNewDeal = (contact: WithId<Contact>, company?: WithId<Company>) => {
     setDealContact(contact);
     setDealCompany(company);
     setIsDealSheetOpen(true);
   };
-
   const handleEditContact = (contact: WithId<Contact>) => {
     setEditingContact(contact);
     setIsNewContactSheetOpen(true);
   };
-
   const handleCloseContactForm = () => {
     setEditingContact(null);
     setIsNewContactSheetOpen(false);
@@ -269,8 +335,8 @@ export default function CustomersPage() {
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
       lastActivity: serverTimestamp(),
-    };
-    addDocumentNonBlocking(dealsCollection, newDeal as Deal);
+    } as Deal;
+    addDocumentNonBlocking(dealsCollection, newDeal);
     toast({ title: "Flow Creado", description: "El nuevo flow ha sido añadido a tu SaleFlow." });
     setIsDealSheetOpen(false);
   };
@@ -278,75 +344,87 @@ export default function CustomersPage() {
 const handleSaveContact = async (formData: Partial<Contact> & { companyName?: string }) => {
     if (!firestore || !user) return;
 
+    const phoneNormalized = normalizePhoneNumber(formData.phone);
+
     let companyId = '';
     const companyName = formData.companyName?.trim();
 
-    // Logic to find or create a company
     if (companyName) {
         const companiesCollection = collection(firestore, 'companies');
         const q = query(companiesCollection, where('name', '==', companyName), where('teamId', '==', teamId));
         
         const querySnapshot = await getDocs(q);
         if (!querySnapshot.empty) {
-            // Company exists
             companyId = querySnapshot.docs[0].id;
         } else {
-            // Company does not exist, create it
             const newCompanyData = {
-                name: companyName,
-                teamId: teamId,
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp(),
-            };
-            const newCompanyRef = await addDocumentNonBlocking(companiesCollection, newCompanyData as Company);
-            if (newCompanyRef) {
-                companyId = newCompanyRef.id;
-            }
+                name: companyName, teamId: teamId, createdAt: serverTimestamp(), updatedAt: serverTimestamp()
+            } as Company;
+            const newCompanyRef = await addDocumentNonBlocking(companiesCollection, newCompanyData);
+            if (newCompanyRef) companyId = newCompanyRef.id;
         }
     }
 
-    // Prepare contact data
-    const contactData: Partial<Contact> = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      jobTitle: formData.jobTitle,
-      companyId: companyId,
-      teamId: teamId,
+    const contactData = {
+      name: formData.name, email: formData.email, phone: formData.phone, phoneNormalized,
+      jobTitle: formData.jobTitle, companyId: companyId || formData.companyId, teamId: teamId,
       updatedAt: serverTimestamp(),
+      searchIndex: [formData.name?.toLowerCase(), formData.email?.toLowerCase(), companyName?.toLowerCase(), formData.phone].filter(Boolean)
     };
 
     if (editingContact) {
-      // Update existing contact
       const contactRef = doc(firestore, 'contacts', editingContact.id);
       updateDocumentNonBlocking(contactRef, contactData);
-      toast({ title: "Cliente Actualizado", description: "La información del cliente ha sido actualizada." });
+      
+      if(formData.phone !== editingContact.phone){
+        const activityData: Omit<Activity, 'id'> = {
+            contactId: editingContact.id,
+            teamId,
+            type: 'phone_updated',
+            notes: `Teléfono actualizado a: ${formData.phone}`,
+            timestamp: serverTimestamp(),
+            actor: user.uid
+        };
+        addDocumentNonBlocking(collection(firestore, 'activities'), activityData);
+        toast({ title: "Teléfono Actualizado" });
+      } else {
+        toast({ title: "Cliente Actualizado", description: "La información del cliente ha sido actualizada." });
+      }
     } else {
-      // Create new contact
-      const contactsCollection = collection(firestore, 'contacts');
-      addDocumentNonBlocking(contactsCollection, { ...contactData, createdAt: serverTimestamp() } as Contact);
+      addDocumentNonBlocking(collection(firestore, 'contacts'), { ...contactData, createdAt: serverTimestamp() } as Contact);
       toast({ title: "Cliente Creado", description: "El nuevo cliente ha sido añadido." });
     }
     handleCloseContactForm();
   };
 
-
-  const isLoading = isLoadingContacts || isLoadingCompanies;
-
   const getLeadStatus = (contact: WithId<Contact>) => {
-    // This is placeholder logic. A real implementation would be more robust.
     const dealsForContact = dealsByContact[contact.id] || [];
     const hasWonDeal = dealsForContact.some(d => d.stage === 'ganado');
-    
     if (hasWonDeal) return 'cliente activo';
     if (dealsForContact.length > 0) return 'en seguimiento';
     return 'nuevo';
   };
   
-  const getStageDisplay = (contactId: string) => {
-    // This is placeholder logic.
-    return <span className="text-muted-foreground">-</span>;
+  const getStageDisplay = (contactId: string) => <span className="text-muted-foreground">-</span>;
+  
+  const handleApplyFilters = (newFilters: any) => {
+    setFilters(newFilters);
+    setIsFilterPanelOpen(false);
   }
+  
+  const handleClearFilters = () => {
+     setFilters({
+        stages: [], status: '', hasPhone: false, hasCompany: false,
+        dateRange: { from: undefined, to: undefined },
+      });
+  }
+
+  const activeFiltersCount = Object.values(filters).filter(v => 
+    (Array.isArray(v) && v.length > 0) ||
+    (typeof v === 'string' && v !== '') ||
+    (typeof v === 'boolean' && v) ||
+    (typeof v === 'object' && v !== null && (v as any).from)
+  ).length;
 
   return (
     <div className="h-full flex flex-col">
@@ -359,67 +437,50 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
             Nuevo Cliente
         </Button>
       </PageHeader>
-       <p className="text-muted-foreground -mt-4 mb-8 text-sm md:text-base">
-        Cada cliente es una historia. Mantén todos sus datos, interacciones y oportunidades sincronizadas automáticamente con tu SaleFlow.
-      </p>
-
+      
       <Card className="mb-8">
         <CardContent className="p-4 flex flex-col md:flex-row items-center gap-4">
             <div className="relative w-full md:w-auto md:flex-grow">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Buscar por nombre, email o empresa..." className="pl-8 w-full" />
+                <Input placeholder="Buscar por nombre, email, empresa o teléfono..." className="pl-8 w-full" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
             </div>
             <div className="flex items-center gap-2">
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="w-full md:w-auto">
-                            <ListFilter className="mr-2 h-4 w-4" />
-                            Filtrar
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Estado del Lead</DropdownMenuLabel>
-                        {Object.entries(leadStatusConfig).map(([key, {name}]) => (
-                            <DropdownMenuCheckboxItem key={key}>
-                                {name}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel>Etapa del SaleFlow</DropdownMenuLabel>
-                        {Object.entries(stageConfig).map(([key, {name}]) => (
-                            <DropdownMenuCheckboxItem key={key}>
-                                {name}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                <Button variant="outline" className="w-full md:w-auto" onClick={() => setIsFilterPanelOpen(true)}>
+                    <ListFilter className="mr-2 h-4 w-4" />
+                    Filtrar
+                    {activeFiltersCount > 0 && <Badge variant="secondary" className="ml-2">{activeFiltersCount}</Badge>}
+                </Button>
             </div>
         </CardContent>
       </Card>
       
       <div className="flex-1 -mt-8">
         <Card className="overflow-hidden h-full">
-          <ScrollArea className="h-full">
+          <ScrollArea className="h-full" onScrollCapture={(e) => {
+              const target = e.target as HTMLDivElement;
+              if(target.scrollHeight - target.scrollTop < target.clientHeight + 100 && hasMore && !isLoading){
+                  fetchContacts(true);
+              }
+          }}>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Empresa</TableHead>
+                  <TableHead>Teléfono</TableHead>
                   <TableHead>Etapa SaleFlow</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead><span className="sr-only">Acciones</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">Cargando clientes...</TableCell>
-                  </TableRow>
+                {contacts.length === 0 && !isLoading ? (
+                  <TableRow><TableCell colSpan={6} className="h-24 text-center">No se encontraron clientes.</TableCell></TableRow>
                 ) : (
-                  contacts && contacts.map((contact) => {
+                  contacts.map((contact) => {
                     const companyName = companyMap.get(contact.companyId) || 'N/A';
                     const leadStatus = getLeadStatus(contact);
-                    const statusConfig = leadStatusConfig[leadStatus];
+                    const statusInfo = leadStatusConfig[leadStatus];
 
                     return (
                       <TableRow key={contact.id} onClick={() => handleRowClick(contact)} className="cursor-pointer hover:bg-muted/50">
@@ -428,10 +489,11 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
                           <div className="text-sm text-muted-foreground">{contact.email}</div>
                         </TableCell>
                         <TableCell>{companyName}</TableCell>
+                        <TableCell>{contact.phone || '-'}</TableCell>
                         <TableCell>{getStageDisplay(contact.id)}</TableCell>
                         <TableCell>
-                            {statusConfig ? (
-                               <Badge className={cn("text-xs", statusConfig.color)} variant="outline">{statusConfig.name}</Badge>
+                            {statusInfo ? (
+                               <Badge className={cn("text-xs", statusInfo.color)} variant="outline">{statusInfo.name}</Badge>
                             ): <Badge variant="outline">Desconocido</Badge>}
                         </TableCell>
                         <TableCell>
@@ -458,13 +520,15 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
                     )
                 })
                 )}
+                {isLoading && (
+                  <TableRow><TableCell colSpan={6} className="text-center">Cargando...</TableCell></TableRow>
+                )}
               </TableBody>
             </Table>
           </ScrollArea>
         </Card>
       </div>
 
-        {/* Right Panel: Details */}
         {selectedContact && (
             <CustomerDetailPanel 
                 contact={selectedContact}
@@ -476,47 +540,27 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
             />
         )}
         
-        {/* New/Edit Contact Sheet */}
         <Sheet open={isNewContactSheetOpen} onOpenChange={handleCloseContactForm}>
             <SheetContent className="sm:max-w-lg">
-            <SheetHeader>
-                <SheetTitle>{editingContact ? 'Editar Cliente' : 'Crear Nuevo Cliente'}</SheetTitle>
-                <SheetDescription>
-                    {editingContact ? 'Actualiza la información de tu cliente.' : 'Añade un nuevo cliente a tu base de datos.'}
-                </SheetDescription>
-            </SheetHeader>
-            <div className="py-4">
-                <ContactForm
-                    onSave={handleSaveContact}
-                    onCancel={handleCloseContactForm}
-                    companies={companies || []}
-                    contact={editingContact}
-                />
-            </div>
+              <SheetHeader><SheetTitle>{editingContact ? 'Editar Cliente' : 'Crear Nuevo Cliente'}</SheetTitle><SheetDescription>{editingContact ? 'Actualiza la información.' : 'Añade un nuevo cliente a tu base de datos.'}</SheetDescription></SheetHeader>
+              <ContactForm onSave={handleSaveContact} onCancel={handleCloseContactForm} companies={companies || []} contact={editingContact}/>
+            </SheetContent>
+        </Sheet>
+        
+        <Sheet open={isFilterPanelOpen} onOpenChange={setIsFilterPanelOpen}>
+            <SheetContent side="left">
+                <SheetHeader><SheetTitle>Filtrar Clientes</SheetTitle></SheetHeader>
+                <div className="py-4">
+                  {/* Filter form would go here */}
+                  <p>Panel de filtros en construcción.</p>
+                </div>
             </SheetContent>
         </Sheet>
 
-        {/* New Deal Sheet */}
         <Sheet open={isDealSheetOpen} onOpenChange={setIsDealSheetOpen}>
             <SheetContent className="sm:max-w-lg">
-            <SheetHeader>
-                <SheetTitle>Crear Nuevo Flow</SheetTitle>
-                <SheetDescription>
-                    Inicia un nuevo negocio para {dealContact?.name}.
-                </SheetDescription>
-            </SheetHeader>
-            <div className="py-4">
-                <DealForm
-                    onSave={handleSaveDeal}
-                    onCancel={() => setIsDealSheetOpen(false)}
-                    contacts={contacts || []}
-                    companies={companies || []}
-                    deal={{
-                        contact: dealContact ? { id: dealContact.id, name: dealContact.name, email: dealContact.email } : undefined,
-                        company: dealCompany ? { id: dealCompany.id, name: dealCompany.name } : undefined,
-                    }}
-                />
-            </div>
+              <SheetHeader><SheetTitle>Crear Nuevo Flow</SheetTitle><SheetDescription>Inicia un nuevo negocio para {dealContact?.name}.</SheetDescription></SheetHeader>
+              <DealForm onSave={handleSaveDeal} onCancel={() => setIsDealSheetOpen(false)} contacts={contacts || []} companies={companies || []} deal={{ contact: dealContact ? { id: dealContact.id, name: dealContact.name, email: dealContact.email } : undefined, company: dealCompany ? { id: dealCompany.id, name: dealCompany.name } : undefined }} />
             </SheetContent>
         </Sheet>
     </div>

@@ -7,6 +7,7 @@ export type Contact = {
   jobTitle?: string;
   companyId: string;
   phone?: string;
+  phoneNormalized?: string | null;
   socials?: string[];
   lastContacted: string | Timestamp;
   city?: string;
@@ -19,6 +20,7 @@ export type Contact = {
   interestLevel?: 'bajo' | 'medio' | 'alto';
   internalNotes?: string;
   nextStep?: string;
+  searchIndex?: string[];
 };
 
 export type Company = {
@@ -61,7 +63,7 @@ export type Deal = {
 
 export type Activity = {
   id: string;
-  type: 'Email' | 'Llamada' | 'Reunión' | 'Nota' | 'stageChange';
+  type: 'Email' | 'Llamada' | 'Reunión' | 'Nota' | 'stageChange' | 'phone_updated';
   contactId: string;
   dealId?: string;
   timestamp: string | FieldValue | Timestamp;
