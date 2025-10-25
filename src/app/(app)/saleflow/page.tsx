@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -22,9 +21,11 @@ import {
   useCollection,
   useMemoFirebase,
   WithId,
+  setDocumentNonBlocking,
 } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { collection, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import type { Contact, Company, Deal } from '@/lib/types';
+import { getTimestampAsDate, simpleHash } from '@/components/kanban-board';
 
 export default function SaleFlowPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -44,7 +45,7 @@ export default function SaleFlowPage() {
   );
   const { data: companies } = useCollection<WithId<Company>>(companiesRef);
 
-  const handleSaveDeal = (formData: Partial<Deal>) => {
+  const handleSaveDeal = async (formData: Partial<Deal>) => {
     if (!firestore || !user || !user.uid) {
       toast({
         title: 'Error',
@@ -53,9 +54,21 @@ export default function SaleFlowPage() {
       });
       return;
     }
+    
+    if (!formData.contact) {
+      toast({
+        title: 'Contacto Requerido',
+        description: 'Por favor, selecciona un contacto para crear el flow.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const dealsCollection = collection(firestore, 'deals');
-    const newDeal: Omit<Deal, 'id'> = {
+    const timestamp = serverTimestamp();
+    const updatedAt = new Date().toISOString();
+
+    const newDealData: Omit<Deal, 'id'> = {
       title: formData.title || 'Nuevo Flow',
       teamId: 'team-1',
       stage: 'potencial',
@@ -63,20 +76,85 @@ export default function SaleFlowPage() {
       currency: formData.currency || 'CLP',
       contact: formData.contact,
       company: formData.company,
-      lastActivity: serverTimestamp(),
+      lastActivity: timestamp,
       ownerId: user.uid,
       status: 'activo',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: timestamp,
+      updatedAt: timestamp,
     };
 
-    addDocumentNonBlocking(dealsCollection, newDeal);
-
+    const newDealRef = await addDocumentNonBlocking(dealsCollection, newDealData);
+    
+    if (!newDealRef) {
+       toast({ title: "Error", description: "No se pudo crear el flow.", variant: "destructive" });
+       return;
+    }
+    
     toast({
       title: 'Flow Creado',
       description: `${formData.title} ha sido agregado a tu flow de ventas.`,
     });
     setIsSheetOpen(false);
+
+
+    // --- Disparar Webhook para nueva oportunidad ---
+    const dealId = newDealRef.id;
+    const eventId = simpleHash(`${dealId}-${updatedAt}`);
+    const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
+    
+    const outboxData = {
+        eventId: eventId,
+        dealId: dealId,
+        status: "pending",
+        createdAt: timestamp
+    };
+    setDocumentNonBlocking(automationOutboxRef, outboxData, {});
+
+    const webhookUrl = "https://hook.us2.make.com/mjxphljdr72s3w6x7cqr2eb3av6955iu";
+    const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
+
+    const payload = {
+      eventType: "saleflow.deal.created",
+      eventId: eventId,
+      dealId: dealId,
+      title: newDealData.title,
+      description: (newDealData as any).description || null,
+      stage: newDealData.stage,
+      value: newDealData.amount,
+      currency: newDealData.currency,
+      clientName: newDealData.contact?.name,
+      companyName: newDealData.company?.name,
+      contactEmail: newDealData.contact?.email,
+      ownerUserId: newDealData.ownerId,
+      ownerEmail: user.email,
+      createdAt: updatedAt, // Using current time as serverTimestamp isn't resolved yet
+      updatedAt: updatedAt,
+      appUrl: `${appBaseUrl}/saleflow?dealId=${dealId}`
+    };
+
+    const startTime = Date.now();
+    fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(async (response) => {
+      const responseTimeMs = Date.now() - startTime;
+      const updateData = {
+        status: response.ok ? 'sent' : 'failed',
+        payload: payload,
+        responseStatus: response.status,
+        responseTimeMs: responseTimeMs,
+        lastAttempt: serverTimestamp()
+      };
+      updateDoc(automationOutboxRef, updateData);
+    }).catch(async (error) => {
+      const errorData = {
+        status: 'failed',
+        lastError: error.message,
+        lastAttempt: serverTimestamp()
+      };
+      updateDoc(automationOutboxRef, errorData);
+    });
   };
 
   return (

@@ -10,6 +10,7 @@ import {
   WithId,
   errorEmitter,
   FirestorePermissionError,
+  setDocumentNonBlocking,
 } from '@/firebase';
 import { type Deal, type DealStage, type Automation } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -111,7 +112,7 @@ const stageConfig: Record<
   },
 };
 
-const getTimestampAsDate = (timestamp: any): Date | null => {
+export const getTimestampAsDate = (timestamp: any): Date | null => {
     if (!timestamp) return null;
     if (timestamp instanceof Date) return timestamp;
     if (typeof timestamp === 'string') {
@@ -130,7 +131,7 @@ const getTimestampAsDate = (timestamp: any): Date | null => {
 }
 
 // Simple hash function for eventId
-const simpleHash = (str: string) => {
+export const simpleHash = (str: string) => {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
@@ -421,7 +422,7 @@ export const KanbanBoard = () => {
                 status: "pending",
                 createdAt: timestamp
             };
-            batch.set(automationOutboxRef, outboxData);
+            setDocumentNonBlocking(automationOutboxRef, outboxData, {});
 
             // Commit the batch and handle potential permission errors
             batch.commit().catch(serverError => {

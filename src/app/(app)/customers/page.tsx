@@ -33,8 +33,9 @@ import {
   WithId,
   addDocumentNonBlocking,
   updateDocumentNonBlocking,
+  setDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, query, where, serverTimestamp, getDocs, orderBy, Timestamp, startAfter, limit, QueryConstraint } from 'firebase/firestore';
+import { collection, doc, query, where, serverTimestamp, getDocs, orderBy, Timestamp, startAfter, limit, QueryConstraint, updateDoc } from 'firebase/firestore';
 import type { Contact, Company, Deal, Activity } from '@/lib/types';
 import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2, UserCircle, ListFilter, Copy, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +48,7 @@ import { format, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useDebounce } from '@/hooks/use-debounce';
 import { Textarea } from '@/components/ui/textarea';
+import { getTimestampAsDate, simpleHash } from '@/components/kanban-board';
 
 
 const stageConfig: Record<string, { icon: React.ElementType; color: string; name: string; }> = {
@@ -341,22 +343,83 @@ export default function CustomersPage() {
     setIsNewContactSheetOpen(false);
   }
   
-  const handleSaveDeal = (formData: Partial<Deal>) => {
+  const handleSaveDeal = async (formData: Partial<Deal>) => {
     if (!firestore || !user) return;
+     if (!formData.contact) {
+      toast({
+        title: 'Contacto Requerido',
+        description: 'Por favor, selecciona un contacto para crear el flow.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const dealsCollection = collection(firestore, 'deals');
-    const newDeal = {
+    const timestamp = serverTimestamp();
+    const updatedAt = new Date().toISOString();
+
+    const newDealData: Omit<Deal, 'id'> = {
       ...formData,
       teamId,
       stage: 'potencial',
       ownerId: user.uid,
       status: 'activo',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      lastActivity: serverTimestamp(),
-    } as Deal;
-    addDocumentNonBlocking(dealsCollection, newDeal);
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      lastActivity: timestamp,
+    } as Omit<Deal, 'id'>;
+
+    const newDealRef = await addDocumentNonBlocking(dealsCollection, newDealData);
+    if (!newDealRef) {
+       toast({ title: "Error", description: "No se pudo crear el flow.", variant: "destructive" });
+       return;
+    }
+
     toast({ title: "Flow Creado", description: "El nuevo flow ha sido añadido a tu SaleFlow." });
     setIsDealSheetOpen(false);
+
+    // --- Disparar Webhook ---
+    const dealId = newDealRef.id;
+    const eventId = simpleHash(`${dealId}-${updatedAt}`);
+    const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
+
+    const outboxData = {
+        eventId, dealId, status: "pending", createdAt: timestamp
+    };
+    setDocumentNonBlocking(automationOutboxRef, outboxData, {});
+
+    const webhookUrl = "https://hook.us2.make.com/mjxphljdr72s3w6x7cqr2eb3av6955iu";
+    const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
+
+    const payload = {
+      eventType: "saleflow.deal.created",
+      eventId, dealId, title: newDealData.title,
+      description: (newDealData as any).description || null,
+      stage: newDealData.stage,
+      value: newDealData.amount, currency: newDealData.currency,
+      clientName: newDealData.contact?.name, companyName: newDealData.company?.name,
+      contactEmail: newDealData.contact?.email, ownerUserId: newDealData.ownerId,
+      ownerEmail: user.email,
+      createdAt: updatedAt, updatedAt,
+      appUrl: `${appBaseUrl}/saleflow?dealId=${dealId}`
+    };
+
+    const startTime = Date.now();
+    fetch(webhookUrl, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    }).then(async (response) => {
+      const responseTimeMs = Date.now() - startTime;
+      const updateData = {
+        status: response.ok ? 'sent' : 'failed', payload, responseStatus: response.status,
+        responseTimeMs, lastAttempt: serverTimestamp()
+      };
+      updateDoc(automationOutboxRef, updateData);
+    }).catch(async (error) => {
+      const errorData = {
+        status: 'failed', lastError: error.message, lastAttempt: serverTimestamp()
+      };
+      updateDoc(automationOutboxRef, errorData);
+    });
   };
   
 const handleSaveContact = async (formData: Partial<Contact> & { companyName?: string }) => {
