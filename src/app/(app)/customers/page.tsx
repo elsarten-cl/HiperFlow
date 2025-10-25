@@ -266,13 +266,9 @@ export default function CustomersPage() {
     if(filters.hasCompany) constraints.push(where('companyId', '!=', ''));
     if(filters.dateRange.from) constraints.push(where('createdAt', '>=', filters.dateRange.from));
     if(filters.dateRange.to) constraints.push(where('createdAt', '<=', filters.dateRange.to));
-    // Firestore limitation: cannot combine range filters with inequality on different fields.
-    // Client-side filtering will be necessary for stages/status/search for now.
     
-    // ERROR FIX: Do not order by a field that is used in a range filter.
-    if (!filters.dateRange.from) {
-        constraints.push(orderBy('createdAt', 'desc'));
-    }
+    // Default sort order
+    constraints.push(orderBy('createdAt', 'desc'));
     
     if(loadMore && lastVisible) constraints.push(startAfter(lastVisible));
     constraints.push(limit(20));
@@ -581,3 +577,5 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
     </div>
   );
 }
+
+    
