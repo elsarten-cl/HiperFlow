@@ -35,7 +35,7 @@ import {
   setDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, query, where, serverTimestamp, getDocs, orderBy, Timestamp, startAfter, limit, QueryConstraint, updateDoc } from 'firebase/firestore';
-import type { Contact, Company, Deal, Activity, WebhookPayload, getTimestampAsDate } from '@/lib/types';
+import type { Contact, Company, Deal, Activity, WebhookPayload } from '@/lib/types';
 import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2, UserCircle, ListFilter, Copy, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn, normalizePhoneNumber } from '@/lib/utils';
@@ -271,11 +271,6 @@ export default function CustomersPage() {
     // Only add date range filters if they exist
     if (filters.dateRange.from) constraints.push(where('createdAt', '>=', filters.dateRange.from));
     if (filters.dateRange.to) constraints.push(where('createdAt', '<=', filters.dateRange.to));
-
-    // Avoid ordering by createdAt when a date range filter is active to prevent index errors
-    if (!filters.dateRange.from && !filters.dateRange.to) {
-        constraints.push(orderBy('createdAt', 'desc'));
-    }
     
     if(loadMore && lastVisible) constraints.push(startAfter(lastVisible));
     constraints.push(limit(20));
