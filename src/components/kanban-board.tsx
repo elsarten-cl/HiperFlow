@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { collection, query, where, doc, updateDoc, serverTimestamp, addDoc, Timestamp, getDoc, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, query, where, doc, updateDoc, serverTimestamp, addDoc, Timestamp, getDoc, setDoc, writeBatch, deleteDoc } from 'firebase/firestore';
 import {
   useCollection,
   useFirestore,
@@ -12,8 +12,9 @@ import {
   FirestorePermissionError,
   setDocumentNonBlocking,
   updateDocumentNonBlocking,
+  deleteDocumentNonBlocking,
 } from '@/firebase';
-import { type Deal, type DealStage, type WebhookPayload } from '@/lib/types';
+import { type Deal, type DealStage, type WebhookPayload, type StageChangedEvent } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -33,6 +34,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -49,6 +51,7 @@ import {
   MoreHorizontal,
   Pencil,
   Archive,
+  Trash2,
 } from 'lucide-react';
 import { format, differenceInDays, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -147,7 +150,7 @@ const getTimestampAsDate = (ts: any): Date | null => {
     return null;
 }
 
-const DealCard = ({ deal, onEdit, onArchive }: { deal: WithId<Deal>, onEdit: (deal: WithId<Deal>) => void, onArchive: (deal: WithId<Deal>) => void }) => {
+const DealCard = ({ deal, onEdit, onArchive, onDelete }: { deal: WithId<Deal>, onEdit: (deal: WithId<Deal>) => void, onArchive: (deal: WithId<Deal>) => void, onDelete: (deal: WithId<Deal>) => void }) => {
   const {
     attributes,
     listeners,
@@ -214,7 +217,11 @@ const DealCard = ({ deal, onEdit, onArchive }: { deal: WithId<Deal>, onEdit: (de
                     <Pencil className="mr-2 h-4 w-4" /> Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onArchive(deal)}>
-                    <Archive className="mr-2 h-4 w-4" /> Archivar (Mover a Perdido)
+                    <Archive className="mr-2 h-4 w-4" /> Cerrar (Perdido)
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-red-500 focus:text-red-500" onClick={() => onDelete(deal)}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Eliminar
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
@@ -256,11 +263,13 @@ const KanbanColumn = ({
   deals,
   onEditDeal,
   onArchiveDeal,
+  onDeleteDeal,
 }: {
   stage: DealStage;
   deals: WithId<Deal>[];
   onEditDeal: (deal: WithId<Deal>) => void;
   onArchiveDeal: (deal: WithId<Deal>) => void;
+  onDeleteDeal: (deal: WithId<Deal>) => void;
 }) => {
   const totalValue = deals.reduce((sum, deal) => sum + deal.amount, 0);
   const config = stageConfig[stage];
@@ -308,7 +317,7 @@ const KanbanColumn = ({
       <div className="flex-1 p-2 bg-card/50 rounded-lg min-h-[200px] overflow-y-auto">
         <SortableContext items={dealsIds}>
           {deals.length > 0 ? (
-            deals.map((deal) => <DealCard key={deal.id} deal={deal} onEdit={onEditDeal} onArchive={onArchiveDeal} />)
+            deals.map((deal) => <DealCard key={deal.id} deal={deal} onEdit={onEditDeal} onArchive={onArchiveDeal} onDelete={onDeleteDeal}/>)
           ) : (
             <div className="text-center text-sm italic text-muted-foreground p-4 h-full flex items-center justify-center">
               {config.emptyStateText}
@@ -401,18 +410,36 @@ export const KanbanBoard = ({ onEditDeal }: KanbanBoardProps) => {
     
     const appBaseUrl = window.location.origin.includes('localhost') ? 'https://hiperflow.emprendedores.app' : window.location.origin;
     
-    const payload = {
+    const contactDoc = deal.contact?.id ? await getDoc(doc(firestore, 'contacts', deal.contact.id)) : null;
+    const ownerDoc = await getDoc(doc(firestore, 'users', deal.ownerId));
+
+    const payload: StageChangedEvent = {
         eventType: "saleflow.stage.changed",
+        eventId: eventId,
         dealId: deal.id,
         title: deal.title,
+        description: deal.description || null,
         previousStage: deal.stage,
         newStage: newStage,
-        clientName: deal.contact?.name || null,
         value: deal.amount,
         currency: deal.currency,
-        contactEmail: deal.contact?.email || null,
+        client: {
+            id: deal.contact?.id || null,
+            name: deal.contact?.name || null,
+            email: deal.contact?.email || null,
+            phone: contactDoc?.data()?.phone || null,
+        },
+        company: {
+            name: deal.company?.name || null
+        },
+        owner: {
+            userId: deal.ownerId,
+            email: ownerDoc.data()?.email || null
+        },
         createdAt: getTimestampAsDate(deal.createdAt)?.toISOString() || new Date().toISOString(),
-        appUrl: `${appBaseUrl}/saleflow?dealId=${deal.id}`,
+        updatedAt: new Date().toISOString(),
+        appUrl: appBaseUrl,
+        dealUrl: `${appBaseUrl}/saleflow?dealId=${deal.id}`,
     };
 
     const startTime = Date.now();
@@ -470,6 +497,12 @@ export const KanbanBoard = ({ onEditDeal }: KanbanBoardProps) => {
     moveDealToStage(deal, 'perdido');
   }
 
+  const handleDeleteDeal = (deal: WithId<Deal>) => {
+    if (!firestore) return;
+    const dealRef = doc(firestore, 'deals', deal.id);
+    deleteDocumentNonBlocking(dealRef);
+  }
+
   if (isLoading) {
     return <div className="text-center py-10">Cargando oportunidades...</div>;
   }
@@ -489,12 +522,13 @@ export const KanbanBoard = ({ onEditDeal }: KanbanBoardProps) => {
               deals={dealsByStage[stage] || []}
               onEditDeal={onEditDeal}
               onArchiveDeal={handleArchiveDeal}
+              onDeleteDeal={handleDeleteDeal}
             />
           ))}
         </SortableContext>
       </div>
       <DragOverlay>
-        {activeDeal ? <DealCard deal={activeDeal} onEdit={onEditDeal} onArchive={handleArchiveDeal} /> : null}
+        {activeDeal ? <DealCard deal={activeDeal} onEdit={onEditDeal} onArchive={handleArchiveDeal} onDelete={handleDeleteDeal} /> : null}
       </DragOverlay>
     </DndContext>
   );
