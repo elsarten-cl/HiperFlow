@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -23,6 +23,9 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
+    DropdownMenuCheckboxItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   useCollection,
@@ -35,7 +38,7 @@ import {
 } from '@/firebase';
 import { collection, doc, query, where, serverTimestamp, getDocs } from 'firebase/firestore';
 import type { Contact, Company, Deal } from '@/lib/types';
-import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2, UserCircle } from 'lucide-react';
+import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2, UserCircle, ListFilter } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -360,47 +363,42 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
         Cada cliente es una historia. Mantén todos sus datos, interacciones y oportunidades sincronizadas automáticamente con tu SaleFlow.
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-[280px_1fr] gap-8 flex-1">
-        {/* Left Panel: Filters */}
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="text-lg font-headline font-semibold mb-4">Filtros</h3>
-            <div className="space-y-6">
-                <div>
-                    <Label className="mb-2 block">Buscar por nombre o empresa</Label>
-                    <div className="relative">
-                        <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Buscar..." className="pl-8" />
-                    </div>
-                </div>
-                <div>
-                    <Label>Estado del Lead</Label>
-                    <div className="space-y-2 mt-2">
-                        {Object.entries(leadStatusConfig).map(([key, {name}]) => (
-                            <div key={key} className="flex items-center space-x-2">
-                                <Checkbox id={`status-${key}`} />
-                                <Label htmlFor={`status-${key}`} className="font-normal">{name}</Label>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                <div>
-                    <Label>Etapa del SaleFlow</Label>
-                     <div className="space-y-2 mt-2">
-                        {Object.entries(stageConfig).map(([key, {name}]) => (
-                            <div key={key} className="flex items-center space-x-2">
-                                <Checkbox id={`stage-${key}`} />
-                                <Label htmlFor={`stage-${key}`} className="font-normal">{name}</Label>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+      <Card className="mb-8">
+        <CardContent className="p-4 flex flex-col md:flex-row items-center gap-4">
+            <div className="relative w-full md:w-auto md:flex-grow">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Buscar por nombre, email o empresa..." className="pl-8 w-full" />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Main Panel: Table */}
-        <Card className="overflow-hidden">
+            <div className="flex items-center gap-2">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-full md:w-auto">
+                            <ListFilter className="mr-2 h-4 w-4" />
+                            Filtrar
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Estado del Lead</DropdownMenuLabel>
+                        {Object.entries(leadStatusConfig).map(([key, {name}]) => (
+                            <DropdownMenuCheckboxItem key={key}>
+                                {name}
+                            </DropdownMenuCheckboxItem>
+                        ))}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuLabel>Etapa del SaleFlow</DropdownMenuLabel>
+                        {Object.entries(stageConfig).map(([key, {name}]) => (
+                            <DropdownMenuCheckboxItem key={key}>
+                                {name}
+                            </DropdownMenuCheckboxItem>
+                        ))}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+        </CardContent>
+      </Card>
+      
+      <div className="flex-1 -mt-8">
+        <Card className="overflow-hidden h-full">
           <ScrollArea className="h-full">
             <Table>
               <TableHeader>
