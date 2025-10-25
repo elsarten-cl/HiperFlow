@@ -24,7 +24,7 @@ import {
   setDocumentNonBlocking,
 } from '@/firebase';
 import { collection, serverTimestamp, doc, updateDoc, Timestamp, getDoc } from 'firebase/firestore';
-import type { Contact, Company, Deal, WebhookPayload, DealCreatedEvent } from '@/lib/types';
+import type { Contact, Company, Deal, FlowCreatedEvent } from '@/lib/types';
 import { simpleHash } from '@/components/kanban-board';
 
 const WEBHOOK_URL = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
@@ -47,15 +47,6 @@ export default function SaleFlowPage() {
   );
   const { data: companies } = useCollection<WithId<Company>>(companiesRef);
 
-  const getTimestampAsDate = (ts: any): Date | null => {
-    if (!ts) return null;
-    if (ts instanceof Timestamp) return ts.toDate();
-    if (ts instanceof Date) return ts;
-    if (typeof ts === 'string') return new Date(ts);
-    if (ts && typeof ts.seconds === 'number') return new Date(ts.seconds * 1000);
-    return null;
-  }
-
   const handleSaveDeal = async (formData: Partial<Deal>) => {
     if (!firestore || !user || !user.uid) {
       toast({
@@ -75,10 +66,9 @@ export default function SaleFlowPage() {
       return;
     }
 
-    // --- Dispara el webhook para 'saleflow.deal.created' ---
     const dealsCollection = collection(firestore, 'deals');
     const timestamp = serverTimestamp();
-    const updatedAt = new Date().toISOString();
+    const creationDate = new Date();
 
     const newDealData: Omit<Deal, 'id'> = {
       title: formData.title || 'Nuevo Flow',
@@ -92,11 +82,11 @@ export default function SaleFlowPage() {
       lastActivity: timestamp,
       ownerId: user.uid,
       status: 'activo',
-      createdAt: timestamp,
-      updatedAt: timestamp,
+      createdAt: creationDate,
+      updatedAt: creationDate,
     };
 
-    const newDealRef = await addDocumentNonBlocking(dealsCollection, newDealData);
+    const newDealRef = await addDocumentNonBlocking(dealsCollection, newDealData as Deal);
     
     if (!newDealRef) {
        toast({ title: "Error", description: "No se pudo crear el flow.", variant: "destructive" });
@@ -110,63 +100,34 @@ export default function SaleFlowPage() {
     setIsSheetOpen(false);
 
 
-    // Dispara el webhook para 'saleflow.deal.created'
+    // --- Dispara el webhook para 'saleflow.flow.created' ---
     const dealId = newDealRef.id;
-    const eventId = `evt_${simpleHash(`${dealId}-${updatedAt}`)}`;
+    const eventId = `evt_${simpleHash(`${dealId}-${creationDate.toISOString()}`)}`;
     const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
     
-    const outboxData = {
+    setDocumentNonBlocking(automationOutboxRef, {
         id: eventId,
         dealId: dealId,
         status: "pending",
-        createdAt: timestamp,
-    };
-    setDocumentNonBlocking(automationOutboxRef, outboxData, {});
+        createdAt: serverTimestamp(),
+    }, {});
+    
+    const appBaseUrl = window.location.origin;
+    const dealUrl = `${appBaseUrl}/saleflow?dealId=${dealId}`;
 
-    // Intenta obtener el teléfono del contacto desde la BD
-    let contactPhone = formData.contact.phone || null;
-    if (formData.contact.id && !contactPhone) {
-        const contactDoc = await getDoc(doc(firestore, 'contacts', formData.contact.id));
-        if (contactDoc.exists()) {
-            contactPhone = contactDoc.data().phone || null;
-        }
-    }
-
-    const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
-
-    const payload: DealCreatedEvent = {
-      eventType: "saleflow.deal.created",
-      eventId: eventId,
+    const payload: FlowCreatedEvent = {
+      eventType: "saleflow.flow.created",
       dealId: dealId,
       title: newDealData.title,
-      description: newDealData.description || null,
-      previousStage: null,
-      newStage: 'potencial',
+      clientName: newDealData.contact?.name || null,
       value: newDealData.amount,
       currency: newDealData.currency,
-      client: {
-        id: newDealData.contact?.id || null,
-        name: newDealData.contact?.name || null,
-        email: newDealData.contact?.email || null,
-        phone: contactPhone,
-      },
-      company: {
-          name: newDealData.company?.name || null
-      },
-      owner: {
-          userId: newDealData.ownerId,
-          email: user.email,
-      },
-      createdAt: updatedAt, 
-      updatedAt: updatedAt,
-      appUrl: appBaseUrl,
-      dealUrl: `${appBaseUrl}/saleflow?dealId=${dealId}`,
+      contactEmail: newDealData.contact?.email || null,
+      createdAt: creationDate.toISOString(),
+      appUrl: dealUrl,
     };
 
     const startTime = Date.now();
-    // Nota: El token de autenticación (MAKE_WEBHOOK_TOKEN) no se incluye aquí
-    // porque el acceso a Secret Manager no está disponible en este entorno.
-    // La lógica de autorización debe añadirse cuando se despliegue a un backend seguro.
     fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -35,7 +35,7 @@ import {
   setDocumentNonBlocking,
 } from '@/firebase';
 import { collection, doc, query, where, serverTimestamp, getDocs, orderBy, Timestamp, startAfter, limit, QueryConstraint, updateDoc, getDoc } from 'firebase/firestore';
-import type { Contact, Company, Deal, Activity, WebhookPayload, DealCreatedEvent } from '@/lib/types';
+import type { Contact, Company, Deal, Activity, FlowCreatedEvent } from '@/lib/types';
 import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2, UserCircle, ListFilter, Copy, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn, normalizePhoneNumber } from '@/lib/utils';
@@ -364,8 +364,8 @@ const handleSaveDeal = async (formData: Partial<Deal>) => {
     }
 
     const dealsCollection = collection(firestore, 'deals');
+    const creationDate = new Date();
     const timestamp = serverTimestamp();
-    const updatedAt = new Date().toISOString();
 
     const newDealData: Omit<Deal, 'id'> = {
       title: formData.title || 'Nuevo Flow',
@@ -379,11 +379,11 @@ const handleSaveDeal = async (formData: Partial<Deal>) => {
       lastActivity: timestamp,
       ownerId: user.uid,
       status: 'activo',
-      createdAt: timestamp,
-      updatedAt: timestamp,
+      createdAt: creationDate,
+      updatedAt: creationDate,
     };
 
-    const newDealRef = await addDocumentNonBlocking(dealsCollection, newDealData);
+    const newDealRef = await addDocumentNonBlocking(dealsCollection, newDealData as Deal);
     if (!newDealRef) {
        toast({ title: "Error", description: "No se pudo crear el flow.", variant: "destructive" });
        return;
@@ -392,54 +392,29 @@ const handleSaveDeal = async (formData: Partial<Deal>) => {
     toast({ title: "Flow Creado", description: "El nuevo flow ha sido añadido a tu SaleFlow." });
     setIsDealSheetOpen(false);
 
-    // --- Dispara el webhook para 'saleflow.deal.created' ---
+    // --- Dispara el webhook para 'saleflow.flow.created' ---
     const dealId = newDealRef.id;
-    const eventId = `evt_${simpleHash(`${dealId}-${updatedAt}`)}`;
+    const eventId = `evt_${simpleHash(`${dealId}-${creationDate.toISOString()}`)}`;
     const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
 
-    const outboxData = { id: eventId, dealId, status: "pending", createdAt: timestamp };
-    setDocumentNonBlocking(automationOutboxRef, outboxData, {});
+    setDocumentNonBlocking(automationOutboxRef, { id: eventId, dealId, status: "pending", createdAt: serverTimestamp() }, {});
 
-    const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
+    const appBaseUrl = window.location.origin;
+    const dealUrl = `${appBaseUrl}/saleflow?dealId=${dealId}`;
     
-    let contactPhone = formData.contact.phone || null;
-    if (formData.contact.id && !contactPhone) {
-        const contactDoc = await getDoc(doc(firestore, 'contacts', formData.contact.id));
-        if (contactDoc.exists()) contactPhone = contactDoc.data().phone || null;
-    }
-
-    const payload: DealCreatedEvent = {
-      eventType: "saleflow.deal.created",
-      eventId,
-      dealId,
+    const payload: FlowCreatedEvent = {
+      eventType: "saleflow.flow.created",
+      dealId: dealId,
       title: newDealData.title,
-      description: newDealData.description || null,
-      previousStage: null,
-      newStage: 'potencial',
+      clientName: newDealData.contact?.name || null,
       value: newDealData.amount,
       currency: newDealData.currency,
-      client: {
-        id: newDealData.contact?.id || null,
-        name: newDealData.contact?.name || null,
-        email: newDealData.contact?.email || null,
-        phone: contactPhone,
-      },
-      company: {
-        name: newDealData.company?.name || null
-      },
-      owner: {
-        userId: newDealData.ownerId,
-        email: user.email,
-      },
-      createdAt: updatedAt,
-      updatedAt,
-      appUrl: appBaseUrl,
-      dealUrl: `${appBaseUrl}/saleflow?dealId=${dealId}`,
+      contactEmail: newDealData.contact?.email || null,
+      createdAt: creationDate.toISOString(),
+      appUrl: dealUrl,
     };
 
     const startTime = Date.now();
-    // Nota: El token de autenticación (MAKE_WEBHOOK_TOKEN) no se incluye aquí
-    // porque el acceso a Secret Manager no está disponible en este entorno.
     fetch(WEBHOOK_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     }).then(async (response) => {
@@ -503,7 +478,7 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
             timestamp: serverTimestamp(),
             actor: user.uid
         };
-        addDocumentNonBlocking(collection(firestore, 'activities'), activityData);
+        addDocumentNonBlocking(collection(firestore, 'activities'), activityData as Activity);
         toast({ title: "Teléfono Actualizado" });
       } else {
         toast({ title: "Cliente Actualizado", description: "La información del cliente ha sido actualizada." });

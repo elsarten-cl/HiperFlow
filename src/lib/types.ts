@@ -215,8 +215,10 @@ export type AutomationOutbox = {
 }
 
 // --- Webhook Payloads ---
+
+// Base for all webhook events
 export interface BaseWebhookPayload {
-  eventType: 'saleflow.deal.created' | 'saleflow.stage.changed';
+  eventType: string;
   eventId: string;
   dealId: string;
   title: string;
@@ -242,16 +244,33 @@ export interface BaseWebhookPayload {
   dealUrl: string;
 }
 
+// Specific event for when a deal is created
 export interface DealCreatedEvent extends BaseWebhookPayload {
   eventType: 'saleflow.deal.created';
   previousStage: null;
   newStage: 'potencial';
 }
 
+// Specific event for when a deal's stage is changed
 export interface StageChangedEvent extends BaseWebhookPayload {
   eventType: 'saleflow.stage.changed';
   previousStage: string;
   newStage: string;
 }
 
-export type WebhookPayload = DealCreatedEvent | StageChangedEvent;
+// Simplified event for flow creation
+export interface FlowCreatedEvent {
+  eventType: 'saleflow.flow.created';
+  dealId: string;
+  title: string;
+  clientName: string | null;
+  value: number;
+  currency: string;
+  contactEmail: string | null;
+  createdAt: string;
+  appUrl: string;
+}
+
+
+// A union type for all possible webhook payloads
+export type WebhookPayload = DealCreatedEvent | StageChangedEvent | FlowCreatedEvent;
