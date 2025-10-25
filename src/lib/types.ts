@@ -1,5 +1,3 @@
-'use client';
-
 import { FieldValue, Timestamp } from "firebase/firestore";
 
 export type Contact = {

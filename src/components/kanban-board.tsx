@@ -12,7 +12,7 @@ import {
   FirestorePermissionError,
   setDocumentNonBlocking,
 } from '@/firebase';
-import { type Deal, type DealStage, type WebhookPayload, getTimestampAsDate } from '@/lib/types';
+import { type Deal, type DealStage, type WebhookPayload } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -127,6 +127,14 @@ export const simpleHash = (str: string) => {
   return 'evt_' + Math.abs(hash).toString(16);
 };
 
+const getTimestampAsDate = (ts: any): Date | null => {
+    if (!ts) return null;
+    if (ts instanceof Timestamp) return ts.toDate();
+    if (ts instanceof Date) return ts;
+    if (typeof ts === 'string') return new Date(ts);
+    if (ts && typeof ts.seconds === 'number') return new Date(ts.seconds * 1000);
+    return null;
+}
 
 const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
   const {
