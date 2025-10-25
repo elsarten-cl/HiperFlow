@@ -78,6 +78,7 @@ export function DealForm({ onSave, onCancel, contacts, companies, deal }: DealFo
           name="contactId"
           value={formData.contactId}
           onValueChange={(value) => handleSelectChange('contactId', value)}
+          required
         >
           <SelectTrigger id="contactId">
             <SelectValue placeholder="Selecciona un contacto" />
@@ -163,5 +164,3 @@ export function DealForm({ onSave, onCancel, contacts, companies, deal }: DealFo
     </form>
   );
 }
-
-    
