@@ -268,7 +268,7 @@ export default function CustomersPage() {
     // Firestore limitation: cannot combine range filters with array-contains or inequality on different fields.
     // Client-side filtering will be necessary for stages/status/search for now.
     
-    constraints.push(orderBy('createdAt', 'desc')); // FIX: Order by a single field to avoid composite index
+    constraints.push(orderBy('createdAt', 'desc'));
     if(loadMore && lastVisible) constraints.push(startAfter(lastVisible));
     constraints.push(limit(20));
 
@@ -564,3 +564,5 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
     </div>
   );
 }
+
+    
