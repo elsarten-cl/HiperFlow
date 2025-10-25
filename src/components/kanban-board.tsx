@@ -11,10 +11,12 @@ import {
   errorEmitter,
   FirestorePermissionError,
   setDocumentNonBlocking,
+  updateDocumentNonBlocking,
 } from '@/firebase';
 import { type Deal, type DealStage, type WebhookPayload } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import {
   DndContext,
@@ -28,6 +30,12 @@ import {
 import { SortableContext, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
   DollarSign,
   MessageSquare,
   Clock,
@@ -38,6 +46,9 @@ import {
   Goal,
   ArchiveX,
   AlertCircle,
+  MoreHorizontal,
+  Pencil,
+  Archive,
 } from 'lucide-react';
 import { format, differenceInDays, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -49,7 +60,7 @@ import {
 } from '@/components/ui/tooltip';
 
 
-const WEBHOOK_URL = "https://hook.us2.make.com/mjxphljdr72s3w6x7cqr2eb3av6955iu";
+const WEBHOOK_URL = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
 
 const stageConfig: Record<
   DealStage,
@@ -136,7 +147,7 @@ const getTimestampAsDate = (ts: any): Date | null => {
     return null;
 }
 
-const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
+const DealCard = ({ deal, onEdit, onArchive }: { deal: WithId<Deal>, onEdit: (deal: WithId<Deal>) => void, onArchive: (deal: WithId<Deal>) => void }) => {
   const {
     attributes,
     listeners,
@@ -177,22 +188,40 @@ const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
       className="mb-4 touch-none bg-card/80 hover:bg-card transition-colors duration-200 cursor-grab active:cursor-grabbing border relative"
       style={{ borderColor: 'hsl(var(--border) / 0.2)' }}
     >
-      {requiresFollowUp && (
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-                <div className="absolute top-2 right-2 text-yellow-500">
-                    <AlertCircle className="h-4 w-4" />
-                </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Requiere seguimiento (más de 7 días sin actualizar)</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      )}
+      <div className="absolute top-2 right-2 flex items-center">
+        {requiresFollowUp && (
+            <TooltipProvider>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <div className="text-yellow-500 mr-1">
+                        <AlertCircle className="h-4 w-4" />
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                <p>Requiere seguimiento (más de 7 días sin actualizar)</p>
+                </TooltipContent>
+            </Tooltip>
+            </TooltipProvider>
+        )}
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                 <Button variant="ghost" className="h-6 w-6 p-0" onClick={(e) => e.stopPropagation()}>
+                    <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                <DropdownMenuItem onClick={() => onEdit(deal)}>
+                    <Pencil className="mr-2 h-4 w-4" /> Editar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onArchive(deal)}>
+                    <Archive className="mr-2 h-4 w-4" /> Archivar (Mover a Perdido)
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
       <CardHeader className="p-3">
-        <CardTitle className="text-base font-semibold text-foreground pr-6">{deal.title}</CardTitle>
+        <CardTitle className="text-base font-semibold text-foreground pr-12">{deal.title}</CardTitle>
         <p className="text-sm text-muted-foreground">{contactInfo}</p>
       </CardHeader>
       <CardContent className="p-3 pt-0 flex flex-col gap-2 text-sm text-muted-foreground">
@@ -225,9 +254,13 @@ const DealCard = ({ deal }: { deal: WithId<Deal> }) => {
 const KanbanColumn = ({
   stage,
   deals,
+  onEditDeal,
+  onArchiveDeal,
 }: {
   stage: DealStage;
   deals: WithId<Deal>[];
+  onEditDeal: (deal: WithId<Deal>) => void;
+  onArchiveDeal: (deal: WithId<Deal>) => void;
 }) => {
   const totalValue = deals.reduce((sum, deal) => sum + deal.amount, 0);
   const config = stageConfig[stage];
@@ -275,7 +308,7 @@ const KanbanColumn = ({
       <div className="flex-1 p-2 bg-card/50 rounded-lg min-h-[200px] overflow-y-auto">
         <SortableContext items={dealsIds}>
           {deals.length > 0 ? (
-            deals.map((deal) => <DealCard key={deal.id} deal={deal} />)
+            deals.map((deal) => <DealCard key={deal.id} deal={deal} onEdit={onEditDeal} onArchive={onArchiveDeal} />)
           ) : (
             <div className="text-center text-sm italic text-muted-foreground p-4 h-full flex items-center justify-center">
               {config.emptyStateText}
@@ -296,7 +329,11 @@ const dealStages: DealStage[] = [
   'perdido',
 ];
 
-export const KanbanBoard = () => {
+type KanbanBoardProps = {
+  onEditDeal: (deal: WithId<Deal>) => void;
+}
+
+export const KanbanBoard = ({ onEditDeal }: KanbanBoardProps) => {
   const firestore = useFirestore();
   const { user } = useUser();
   const teamId = 'team-1';
@@ -343,6 +380,64 @@ export const KanbanBoard = () => {
       setActiveDeal(event.active.data.current.deal);
     }
   };
+  
+  const moveDealToStage = async (deal: WithId<Deal>, newStage: DealStage) => {
+    if (!firestore || !user) return;
+    if (newStage === deal.stage) return;
+    
+    const dealRef = doc(firestore, 'deals', deal.id);
+    const updateData = { stage: newStage, updatedAt: serverTimestamp() };
+    
+    // Optimistic update
+    updateDocumentNonBlocking(dealRef, updateData);
+    
+    // Trigger webhook
+    const eventId = `evt_${simpleHash(`${deal.id}-${new Date().toISOString()}`)}`;
+    const outboxRef = doc(firestore, 'automation_outbox', eventId);
+    
+    setDocumentNonBlocking(outboxRef, {
+        id: eventId, dealId: deal.id, status: "pending", createdAt: serverTimestamp()
+    }, {});
+    
+    const appBaseUrl = window.location.origin.includes('localhost') ? 'https://hiperflow.emprendedores.app' : window.location.origin;
+    
+    const payload = {
+        eventType: "saleflow.stage.changed",
+        dealId: deal.id,
+        title: deal.title,
+        previousStage: deal.stage,
+        newStage: newStage,
+        clientName: deal.contact?.name || null,
+        value: deal.amount,
+        currency: deal.currency,
+        contactEmail: deal.contact?.email || null,
+        createdAt: getTimestampAsDate(deal.createdAt)?.toISOString() || new Date().toISOString(),
+        appUrl: `${appBaseUrl}/saleflow?dealId=${deal.id}`,
+    };
+
+    const startTime = Date.now();
+    fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    }).then(response => {
+        const responseTimeMs = Date.now() - startTime;
+        updateDoc(outboxRef, {
+            status: response.ok ? 'sent' : 'failed',
+            payload,
+            responseStatus: response.status,
+            responseTimeMs,
+            lastAttempt: serverTimestamp(),
+            lastError: response.ok ? null : `HTTP ${response.status}`
+        });
+    }).catch(error => {
+        updateDoc(outboxRef, {
+            status: 'failed',
+            lastError: error instanceof Error ? error.message : "Unknown fetch error",
+            lastAttempt: serverTimestamp()
+        });
+    });
+  }
 
   const handleDragEnd = async (event: DragEndEvent) => {
     setActiveDeal(null);
@@ -366,136 +461,14 @@ export const KanbanBoard = () => {
     const isOverADeal = over.data.current?.type === 'Deal';
     if (isOverADeal) newStage = (over.data.current?.deal as WithId<Deal>).stage;
 
-    if (newStage && newStage !== dealToMove.stage) {
-        // This is where the webhook for 'saleflow.stage.changed' is triggered.
-        const timestamp = serverTimestamp();
-        const updatedAt = new Date().toISOString();
-        
-        try {
-            const eventId = `evt_${simpleHash(`${dealToMove.id}-${updatedAt}`)}`;
-            
-            const dealRef = doc(firestore, 'deals', dealToMove.id);
-            const activitiesCollection = collection(firestore, 'activities');
-            const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
-
-            const outboxDocSnap = await getDoc(automationOutboxRef);
-            if (outboxDocSnap.exists() && outboxDocSnap.data()?.status === 'sent') {
-                return;
-            }
-
-            const batch = writeBatch(firestore);
-
-            const dealUpdateData = { 
-                stage: newStage,
-                updatedAt: timestamp,
-                lastActivity: timestamp,
-            };
-            batch.update(dealRef, dealUpdateData);
-
-            const oldStageName = stageConfig[dealToMove.stage]?.name || dealToMove.stage;
-            const newStageName = stageConfig[newStage]?.name || newStage;
-            const activityData = {
-                type: 'stageChange' as const,
-                notes: `Cambio de etapa: ${oldStageName} -> ${newStageName}`,
-                timestamp: timestamp,
-                dealId: dealToMove.id,
-                contactId: dealToMove.contact?.id || '',
-                teamId: dealToMove.teamId,
-                actor: user.email || user.uid,
-            };
-            const activityRef = doc(activitiesCollection); 
-            batch.set(activityRef, activityData);
-            
-            const outboxData = {
-                id: eventId, dealId: dealToMove.id, status: "pending", createdAt: timestamp
-            };
-            setDocumentNonBlocking(automationOutboxRef, outboxData, {});
-
-            batch.commit().catch(serverError => {
-                const permissionError = new FirestorePermissionError({
-                    path: `batch write (deal: ${dealRef.path}, activity: ${activitiesCollection.path}, outbox: ${automationOutboxRef.path})`,
-                    operation: 'write', 
-                    requestResourceData: { dealUpdate: dealUpdateData, activity: activityData, outbox: outboxData }
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            });
-            
-            const appBaseUrl = window.location.origin.includes('localhost') ? 'https://hiperflow.emprendedores.app' : window.location.origin;
-            
-            const payload: WebhookPayload = {
-                eventType: "saleflow.stage.changed",
-                eventId: eventId,
-                dealId: dealToMove.id,
-                title: dealToMove.title,
-                description: dealToMove.description || null,
-                previousStage: dealToMove.stage,
-                newStage: newStage,
-                value: dealToMove.amount,
-                currency: dealToMove.currency,
-                client: {
-                    id: dealToMove.contact?.id || null,
-                    name: dealToMove.contact?.name || null,
-                    email: dealToMove.contact?.email || null,
-                    phone: dealToMove.contact?.phone || null,
-                },
-                company: {
-                    name: dealToMove.company?.name || null,
-                },
-                owner: {
-                    userId: dealToMove.ownerId,
-                    email: user.email,
-                },
-                createdAt: getTimestampAsDate(dealToMove.createdAt)?.toISOString() || new Date().toISOString(),
-                updatedAt: updatedAt,
-                appUrl: appBaseUrl,
-                dealUrl: `${appBaseUrl}/saleflow?dealId=${dealToMove.id}`,
-            };
-
-            const startTime = Date.now();
-            fetch(WEBHOOK_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }).then(async (response) => {
-                const responseTimeMs = Date.now() - startTime;
-                const updateData = {
-                    status: response.ok ? 'sent' : 'failed',
-                    payload: payload,
-                    responseStatus: response.status,
-                    responseTimeMs: responseTimeMs,
-                    lastAttempt: serverTimestamp(),
-                    ...(response.ok ? {} : { lastError: `HTTP ${response.status}` })
-                };
-                updateDoc(automationOutboxRef, updateData).catch(serverError => {
-                    errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: automationOutboxRef.path, operation: 'update', requestResourceData: updateData
-                    }));
-                });
-            }).catch(async (error) => {
-                const errorData = {
-                    status: 'failed',
-                    lastError: error instanceof Error ? error.message : "Unknown fetch error",
-                    lastAttempt: serverTimestamp()
-                };
-                updateDoc(automationOutboxRef, errorData).catch(serverError => {
-                    errorEmitter.emit('permission-error', new FirestorePermissionError({
-                        path: automationOutboxRef.path, operation: 'update', requestResourceData: errorData
-                    }));
-                });
-            });
-
-        } catch (error) {
-             if (error instanceof Error) {
-                const permissionError = new FirestorePermissionError({
-                    path: 'unknown',
-                    operation: 'get',
-                    requestResourceData: { error: 'Failed during idempotency check' },
-                });
-                errorEmitter.emit('permission-error', permissionError);
-            }
-        }
+    if (newStage) {
+      moveDealToStage(dealToMove, newStage);
     }
   };
+
+  const handleArchiveDeal = (deal: WithId<Deal>) => {
+    moveDealToStage(deal, 'perdido');
+  }
 
   if (isLoading) {
     return <div className="text-center py-10">Cargando oportunidades...</div>;
@@ -514,12 +487,14 @@ export const KanbanBoard = () => {
               key={stage}
               stage={stage}
               deals={dealsByStage[stage] || []}
+              onEditDeal={onEditDeal}
+              onArchiveDeal={handleArchiveDeal}
             />
           ))}
         </SortableContext>
       </div>
       <DragOverlay>
-        {activeDeal ? <DealCard deal={activeDeal} /> : null}
+        {activeDeal ? <DealCard deal={activeDeal} onEdit={onEditDeal} onArchive={handleArchiveDeal} /> : null}
       </DragOverlay>
     </DndContext>
   );

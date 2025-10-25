@@ -58,8 +58,8 @@ export type Deal = {
   priority?: "alta" | "media" | "baja";
   ownerId: string;
   status: "activo" | "cerrado" | "descartado";
-  createdAt: FieldValue | Timestamp;
-  updatedAt: FieldValue | Timestamp;
+  createdAt: Date | Timestamp | FieldValue;
+  updatedAt: Date | Timestamp | FieldValue;
 };
 
 
@@ -219,50 +219,28 @@ export type AutomationOutbox = {
 // Base for all webhook events
 export interface BaseWebhookPayload {
   eventType: string;
-  eventId: string;
   dealId: string;
   title: string;
-  description: string | null;
-  value: number | null;
-  currency: string | null;
-  client: {
-    id: string | null;
-    name: string | null;
-    email: string | null;
-    phone: string | null;
-  };
-  company: {
-    name: string | null;
-  };
-  owner: {
-    userId: string | null;
-    email: string | null;
-  };
+  clientName: string | null;
+  value: number;
+  currency: string;
+  contactEmail: string | null;
   createdAt: string;
-  updatedAt: string;
-  appUrl: string;
-  dealUrl: string;
 }
 
 // Specific event for when a deal is created
-export interface DealCreatedEvent extends BaseWebhookPayload {
-  eventType: 'saleflow.deal.created';
-  previousStage: null;
-  newStage: 'potencial';
+export interface FlowCreatedEvent extends BaseWebhookPayload {
+  eventType: 'saleflow.flow.created';
+  appUrl: string;
 }
 
 // Specific event for when a deal's stage is changed
-export interface StageChangedEvent extends BaseWebhookPayload {
+export interface StageChangedEvent {
   eventType: 'saleflow.stage.changed';
-  previousStage: string;
-  newStage: string;
-}
-
-// Simplified event for flow creation
-export interface FlowCreatedEvent {
-  eventType: 'saleflow.flow.created';
   dealId: string;
   title: string;
+  previousStage: string;
+  newStage: string;
   clientName: string | null;
   value: number;
   currency: string;
@@ -273,4 +251,4 @@ export interface FlowCreatedEvent {
 
 
 // A union type for all possible webhook payloads
-export type WebhookPayload = DealCreatedEvent | StageChangedEvent | FlowCreatedEvent;
+export type WebhookPayload = FlowCreatedEvent | StageChangedEvent;
