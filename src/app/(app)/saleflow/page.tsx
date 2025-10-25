@@ -27,7 +27,7 @@ import { collection, serverTimestamp, doc, updateDoc, Timestamp, getDoc } from '
 import type { Contact, Company, Deal, FlowCreatedEvent } from '@/lib/types';
 import { simpleHash } from '@/components/kanban-board';
 
-const WEBHOOK_URL = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
+const WEBHOOK_URL = "https://hook.us2.make.com/mjxphljdr72s3w6x7cqr2eb3av6955iu";
 
 export default function SaleFlowPage() {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
@@ -112,7 +112,7 @@ export default function SaleFlowPage() {
         createdAt: serverTimestamp(),
     }, {});
     
-    const appBaseUrl = window.location.origin;
+    const appBaseUrl = window.location.origin.includes('localhost') ? 'https://hiperflow.emprendedores.app' : window.location.origin;
     const dealUrl = `${appBaseUrl}/saleflow?dealId=${dealId}`;
 
     const payload: FlowCreatedEvent = {

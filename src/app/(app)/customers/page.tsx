@@ -49,7 +49,7 @@ import { useDebounce } from '@/hooks/use-debounce';
 import { Textarea } from '@/components/ui/textarea';
 import { simpleHash } from '@/components/kanban-board';
 
-const WEBHOOK_URL = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
+const WEBHOOK_URL = "https://hook.us2.make.com/mjxphljdr72s3w6x7cqr2eb3av6955iu";
 
 const stageConfig: Record<string, { icon: React.ElementType; color: string; name: string; }> = {
   potencial: { icon: Lightbulb, color: 'text-blue-400', name: 'Potencial' },
@@ -274,9 +274,14 @@ export default function CustomersPage() {
     setIsLoading(true);
     
     const constraints: QueryConstraint[] = [where('teamId', '==', teamId)];
+    
+    // The combination of these filters requires a composite index.
+    // To avoid crashes, we are removing the orderBy clause when date filters are active.
+    if (!filters.dateRange.from && !filters.dateRange.to) {
+        constraints.push(orderBy('createdAt', 'desc'));
+    }
     if (filters.hasPhone) constraints.push(where('phone', '!=', null));
     if (filters.hasCompany) constraints.push(where('companyId', '!=', ''));
-
     if (filters.dateRange.from) constraints.push(where('createdAt', '>=', filters.dateRange.from));
     if (filters.dateRange.to) constraints.push(where('createdAt', '<=', filters.dateRange.to));
     
@@ -311,8 +316,8 @@ export default function CustomersPage() {
         console.error("Error fetching contacts:", error);
         if (error instanceof Error && error.message.includes('index')) {
              toast({
-                title: "Error de Consulta",
-                description: "La combinación de filtros actual requiere un índice de Firestore que no existe. Prueba con menos filtros o crea el índice en la consola de Firebase.",
+                title: "Índice de Firestore Requerido",
+                description: "Esta combinación de filtros necesita un índice compuesto que no existe. Intenta con menos filtros o crea el índice en la Consola de Firebase.",
                 variant: "destructive"
             });
         } else {
@@ -399,7 +404,7 @@ const handleSaveDeal = async (formData: Partial<Deal>) => {
 
     setDocumentNonBlocking(automationOutboxRef, { id: eventId, dealId, status: "pending", createdAt: serverTimestamp() }, {});
 
-    const appBaseUrl = window.location.origin;
+    const appBaseUrl = window.location.origin.includes('localhost') ? 'https://hiperflow.emprendedores.app' : window.location.origin;
     const dealUrl = `${appBaseUrl}/saleflow?dealId=${dealId}`;
     
     const payload: FlowCreatedEvent = {

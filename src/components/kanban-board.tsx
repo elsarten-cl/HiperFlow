@@ -49,7 +49,7 @@ import {
 } from '@/components/ui/tooltip';
 
 
-const WEBHOOK_URL = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
+const WEBHOOK_URL = "https://hook.us2.make.com/mjxphljdr72s3w6x7cqr2eb3av6955iu";
 
 const stageConfig: Record<
   DealStage,
@@ -420,7 +420,7 @@ export const KanbanBoard = () => {
                 errorEmitter.emit('permission-error', permissionError);
             });
             
-            const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
+            const appBaseUrl = window.location.origin.includes('localhost') ? 'https://hiperflow.emprendedores.app' : window.location.origin;
             
             const payload: WebhookPayload = {
                 eventType: "saleflow.stage.changed",
