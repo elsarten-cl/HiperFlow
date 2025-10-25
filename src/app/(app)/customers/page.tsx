@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
@@ -267,9 +268,6 @@ export default function CustomersPage() {
     if(filters.dateRange.from) constraints.push(where('createdAt', '>=', filters.dateRange.from));
     if(filters.dateRange.to) constraints.push(where('createdAt', '<=', filters.dateRange.to));
     
-    // Default sort order
-    constraints.push(orderBy('createdAt', 'desc'));
-    
     if(loadMore && lastVisible) constraints.push(startAfter(lastVisible));
     constraints.push(limit(20));
 
@@ -300,11 +298,19 @@ export default function CustomersPage() {
 
     } catch (error) {
         console.error("Error fetching contacts:", error);
-        toast({
-            title: "Error de Consulta",
-            description: "No se pudieron cargar los clientes. Es posible que falte un índice en Firestore.",
-            variant: "destructive"
-        });
+        if (error instanceof Error && error.message.includes('index')) {
+             toast({
+                title: "Error de Consulta",
+                description: "La combinación de filtros actual requiere un índice de Firestore que no existe. Prueba con menos filtros o crea el índice en la consola de Firebase.",
+                variant: "destructive"
+            });
+        } else {
+             toast({
+                title: "Error Inesperado",
+                description: "No se pudieron cargar los clientes.",
+                variant: "destructive"
+            });
+        }
     } finally {
         setIsLoading(false);
     }
@@ -577,5 +583,3 @@ const handleSaveContact = async (formData: Partial<Contact> & { companyName?: st
     </div>
   );
 }
-
-    
