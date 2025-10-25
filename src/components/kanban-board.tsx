@@ -367,26 +367,24 @@ export const KanbanBoard = () => {
     if (isOverADeal) newStage = (over.data.current?.deal as WithId<Deal>).stage;
 
     if (newStage && newStage !== dealToMove.stage) {
+        // This is where the webhook for 'saleflow.stage.changed' is triggered.
         const timestamp = serverTimestamp();
         const updatedAt = new Date().toISOString();
         
         try {
-            const eventId = simpleHash(`${dealToMove.id}-${updatedAt}`);
+            const eventId = `evt_${simpleHash(`${dealToMove.id}-${updatedAt}`)}`;
             
             const dealRef = doc(firestore, 'deals', dealToMove.id);
             const activitiesCollection = collection(firestore, 'activities');
             const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
 
-            // Idempotency check
             const outboxDocSnap = await getDoc(automationOutboxRef);
             if (outboxDocSnap.exists() && outboxDocSnap.data()?.status === 'sent') {
-                console.log("Idempotency check: Event already sent, skipping.");
                 return;
             }
 
             const batch = writeBatch(firestore);
 
-            // 1. Update the deal
             const dealUpdateData = { 
                 stage: newStage,
                 updatedAt: timestamp,
@@ -394,7 +392,6 @@ export const KanbanBoard = () => {
             };
             batch.update(dealRef, dealUpdateData);
 
-            // 2. Log activity
             const oldStageName = stageConfig[dealToMove.stage]?.name || dealToMove.stage;
             const newStageName = stageConfig[newStage]?.name || newStage;
             const activityData = {
@@ -406,33 +403,23 @@ export const KanbanBoard = () => {
                 teamId: dealToMove.teamId,
                 actor: user.email || user.uid,
             };
-            const activityRef = doc(activitiesCollection); // Create a new doc ref for activity
+            const activityRef = doc(activitiesCollection); 
             batch.set(activityRef, activityData);
             
-            // 3. Prepare for webhook
             const outboxData = {
-                eventId: eventId,
-                dealId: dealToMove.id,
-                status: "pending",
-                createdAt: timestamp
+                id: eventId, dealId: dealToMove.id, status: "pending", createdAt: timestamp
             };
             setDocumentNonBlocking(automationOutboxRef, outboxData, {});
 
-            // Commit the batch and handle potential permission errors
             batch.commit().catch(serverError => {
                 const permissionError = new FirestorePermissionError({
                     path: `batch write (deal: ${dealRef.path}, activity: ${activitiesCollection.path}, outbox: ${automationOutboxRef.path})`,
                     operation: 'write', 
-                    requestResourceData: {
-                        dealUpdate: dealUpdateData,
-                        activity: activityData,
-                        outbox: outboxData
-                    }
+                    requestResourceData: { dealUpdate: dealUpdateData, activity: activityData, outbox: outboxData }
                 });
                 errorEmitter.emit('permission-error', permissionError);
             });
             
-            // 4. Send webhook (optimistically, after committing the batch)
             const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
             
             const payload: WebhookPayload = {
@@ -476,7 +463,8 @@ export const KanbanBoard = () => {
                     payload: payload,
                     responseStatus: response.status,
                     responseTimeMs: responseTimeMs,
-                    lastAttempt: serverTimestamp()
+                    lastAttempt: serverTimestamp(),
+                    ...(response.ok ? {} : { lastError: `HTTP ${response.status}` })
                 };
                 updateDoc(automationOutboxRef, updateData).catch(serverError => {
                     errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -486,7 +474,7 @@ export const KanbanBoard = () => {
             }).catch(async (error) => {
                 const errorData = {
                     status: 'failed',
-                    lastError: error.message,
+                    lastError: error instanceof Error ? error.message : "Unknown fetch error",
                     lastAttempt: serverTimestamp()
                 };
                 updateDoc(automationOutboxRef, errorData).catch(serverError => {
@@ -497,10 +485,9 @@ export const KanbanBoard = () => {
             });
 
         } catch (error) {
-            // This outer catch is for synchronous errors like getDoc failure
              if (error instanceof Error) {
                 const permissionError = new FirestorePermissionError({
-                    path: 'unknown', // Can't know for sure which one failed
+                    path: 'unknown',
                     operation: 'get',
                     requestResourceData: { error: 'Failed during idempotency check' },
                 });

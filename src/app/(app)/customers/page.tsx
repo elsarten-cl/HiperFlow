@@ -34,8 +34,8 @@ import {
   updateDocumentNonBlocking,
   setDocumentNonBlocking,
 } from '@/firebase';
-import { collection, doc, query, where, serverTimestamp, getDocs, orderBy, Timestamp, startAfter, limit, QueryConstraint, updateDoc } from 'firebase/firestore';
-import type { Contact, Company, Deal, Activity, WebhookPayload } from '@/lib/types';
+import { collection, doc, query, where, serverTimestamp, getDocs, orderBy, Timestamp, startAfter, limit, QueryConstraint, updateDoc, getDoc } from 'firebase/firestore';
+import type { Contact, Company, Deal, Activity, WebhookPayload, DealCreatedEvent } from '@/lib/types';
 import { Plus, Search, Phone, Mail, FileText, Handshake, Goal, ArchiveX, Lightbulb, User, Briefcase, Calendar, MessageSquare, Pencil, MoreHorizontal, Trash2, UserCircle, ListFilter, Copy, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn, normalizePhoneNumber } from '@/lib/utils';
@@ -258,6 +258,15 @@ export default function CustomersPage() {
     });
     return map;
   }, [dealsForSelectedContact]);
+  
+  const getTimestampAsDate = (ts: any): Date | null => {
+    if (!ts) return null;
+    if (ts instanceof Timestamp) return ts.toDate();
+    if (ts instanceof Date) return ts;
+    if (typeof ts === 'string') return new Date(ts);
+    if (ts && typeof ts.seconds === 'number') return new Date(ts.seconds * 1000);
+    return null;
+  }
 
   const fetchContacts = useCallback(async (loadMore = false) => {
     if (!firestore || (!hasMore && loadMore)) return;
@@ -268,7 +277,6 @@ export default function CustomersPage() {
     if (filters.hasPhone) constraints.push(where('phone', '!=', null));
     if (filters.hasCompany) constraints.push(where('companyId', '!=', ''));
 
-    // Only add date range filters if they exist
     if (filters.dateRange.from) constraints.push(where('createdAt', '>=', filters.dateRange.from));
     if (filters.dateRange.to) constraints.push(where('createdAt', '<=', filters.dateRange.to));
     
@@ -287,7 +295,6 @@ export default function CustomersPage() {
         
         let processedContacts = newContacts;
 
-        // Client-side filtering for search term
         if (debouncedSearchTerm) {
           const lowerCaseSearch = debouncedSearchTerm.toLowerCase();
           processedContacts = processedContacts.filter(c => 
@@ -385,17 +392,23 @@ const handleSaveDeal = async (formData: Partial<Deal>) => {
     toast({ title: "Flow Creado", description: "El nuevo flow ha sido añadido a tu SaleFlow." });
     setIsDealSheetOpen(false);
 
-    // --- Disparar Webhook ---
+    // --- Dispara el webhook para 'saleflow.deal.created' ---
     const dealId = newDealRef.id;
-    const eventId = simpleHash(`${dealId}-${updatedAt}`);
+    const eventId = `evt_${simpleHash(`${dealId}-${updatedAt}`)}`;
     const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
 
-    const outboxData = { eventId, dealId, status: "pending", createdAt: timestamp };
+    const outboxData = { id: eventId, dealId, status: "pending", createdAt: timestamp };
     setDocumentNonBlocking(automationOutboxRef, outboxData, {});
 
     const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
+    
+    let contactPhone = formData.contact.phone || null;
+    if (formData.contact.id && !contactPhone) {
+        const contactDoc = await getDoc(doc(firestore, 'contacts', formData.contact.id));
+        if (contactDoc.exists()) contactPhone = contactDoc.data().phone || null;
+    }
 
-    const payload: WebhookPayload = {
+    const payload: DealCreatedEvent = {
       eventType: "saleflow.deal.created",
       eventId,
       dealId,
@@ -409,7 +422,7 @@ const handleSaveDeal = async (formData: Partial<Deal>) => {
         id: newDealData.contact?.id || null,
         name: newDealData.contact?.name || null,
         email: newDealData.contact?.email || null,
-        phone: newDealData.contact?.phone || null,
+        phone: contactPhone,
       },
       company: {
         name: newDealData.company?.name || null
@@ -425,18 +438,21 @@ const handleSaveDeal = async (formData: Partial<Deal>) => {
     };
 
     const startTime = Date.now();
+    // Nota: El token de autenticación (MAKE_WEBHOOK_TOKEN) no se incluye aquí
+    // porque el acceso a Secret Manager no está disponible en este entorno.
     fetch(WEBHOOK_URL, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     }).then(async (response) => {
       const responseTimeMs = Date.now() - startTime;
       const updateData = {
         status: response.ok ? 'sent' : 'failed', payload, responseStatus: response.status,
-        responseTimeMs, lastAttempt: serverTimestamp()
+        responseTimeMs, lastAttempt: serverTimestamp(),
+        ...(response.ok ? {} : { lastError: `HTTP ${response.status}. Authorized?` })
       };
       updateDoc(automationOutboxRef, updateData);
     }).catch(async (error) => {
       const errorData = {
-        status: 'failed', lastError: error.message, lastAttempt: serverTimestamp()
+        status: 'failed', lastError: error instanceof Error ? error.message : "Unknown fetch error", lastAttempt: serverTimestamp()
       };
       updateDoc(automationOutboxRef, errorData);
     });

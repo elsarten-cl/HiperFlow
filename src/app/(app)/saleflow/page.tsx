@@ -23,8 +23,8 @@ import {
   WithId,
   setDocumentNonBlocking,
 } from '@/firebase';
-import { collection, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
-import type { Contact, Company, Deal, WebhookPayload, getTimestampAsDate } from '@/lib/types';
+import { collection, serverTimestamp, doc, updateDoc, Timestamp, getDoc } from 'firebase/firestore';
+import type { Contact, Company, Deal, WebhookPayload, DealCreatedEvent } from '@/lib/types';
 import { simpleHash } from '@/components/kanban-board';
 
 const WEBHOOK_URL = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
@@ -47,6 +47,15 @@ export default function SaleFlowPage() {
   );
   const { data: companies } = useCollection<WithId<Company>>(companiesRef);
 
+  const getTimestampAsDate = (ts: any): Date | null => {
+    if (!ts) return null;
+    if (ts instanceof Timestamp) return ts.toDate();
+    if (ts instanceof Date) return ts;
+    if (typeof ts === 'string') return new Date(ts);
+    if (ts && typeof ts.seconds === 'number') return new Date(ts.seconds * 1000);
+    return null;
+  }
+
   const handleSaveDeal = async (formData: Partial<Deal>) => {
     if (!firestore || !user || !user.uid) {
       toast({
@@ -66,6 +75,7 @@ export default function SaleFlowPage() {
       return;
     }
 
+    // --- Dispara el webhook para 'saleflow.deal.created' ---
     const dealsCollection = collection(firestore, 'deals');
     const timestamp = serverTimestamp();
     const updatedAt = new Date().toISOString();
@@ -100,22 +110,31 @@ export default function SaleFlowPage() {
     setIsSheetOpen(false);
 
 
-    // --- Disparar Webhook para nueva oportunidad ---
+    // Dispara el webhook para 'saleflow.deal.created'
     const dealId = newDealRef.id;
-    const eventId = simpleHash(`${dealId}-${updatedAt}`);
+    const eventId = `evt_${simpleHash(`${dealId}-${updatedAt}`)}`;
     const automationOutboxRef = doc(firestore, 'automation_outbox', eventId);
     
     const outboxData = {
-        eventId: eventId,
+        id: eventId,
         dealId: dealId,
         status: "pending",
         createdAt: timestamp,
     };
     setDocumentNonBlocking(automationOutboxRef, outboxData, {});
 
+    // Intenta obtener el teléfono del contacto desde la BD
+    let contactPhone = formData.contact.phone || null;
+    if (formData.contact.id && !contactPhone) {
+        const contactDoc = await getDoc(doc(firestore, 'contacts', formData.contact.id));
+        if (contactDoc.exists()) {
+            contactPhone = contactDoc.data().phone || null;
+        }
+    }
+
     const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
 
-    const payload: WebhookPayload = {
+    const payload: DealCreatedEvent = {
       eventType: "saleflow.deal.created",
       eventId: eventId,
       dealId: dealId,
@@ -129,7 +148,7 @@ export default function SaleFlowPage() {
         id: newDealData.contact?.id || null,
         name: newDealData.contact?.name || null,
         email: newDealData.contact?.email || null,
-        phone: newDealData.contact?.phone || null,
+        phone: contactPhone,
       },
       company: {
           name: newDealData.company?.name || null
@@ -145,6 +164,9 @@ export default function SaleFlowPage() {
     };
 
     const startTime = Date.now();
+    // Nota: El token de autenticación (MAKE_WEBHOOK_TOKEN) no se incluye aquí
+    // porque el acceso a Secret Manager no está disponible en este entorno.
+    // La lógica de autorización debe añadirse cuando se despliegue a un backend seguro.
     fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -156,13 +178,14 @@ export default function SaleFlowPage() {
         payload: payload,
         responseStatus: response.status,
         responseTimeMs: responseTimeMs,
-        lastAttempt: serverTimestamp()
+        lastAttempt: serverTimestamp(),
+        ...(response.ok ? {} : { lastError: `HTTP ${response.status}. Authorized?` })
       };
       updateDoc(automationOutboxRef, updateData);
     }).catch(async (error) => {
       const errorData = {
         status: 'failed',
-        lastError: error.message,
+        lastError: error instanceof Error ? error.message : "Unknown fetch error",
         lastAttempt: serverTimestamp()
       };
       updateDoc(automationOutboxRef, errorData);
