@@ -438,7 +438,7 @@ export const KanbanBoard = () => {
             });
             
             // 4. Send webhook (optimistically, after committing the batch)
-            const webhookUrl = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
+            const webhookUrl = "https://hook.us2.make.com/mjxphljdr72s3w6x7cqr2eb3av6955iu";
             const appBaseUrl = window.location.origin.includes('localhost') ? 'https://studio--crm-superflow.us-central1.hosted.app' : window.location.origin;
             const payload = {
                 eventType: "saleflow.stage.changed",
