@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -14,7 +15,7 @@ import {
   updateDocumentNonBlocking,
   deleteDocumentNonBlocking,
 } from '@/firebase';
-import { type Deal, type DealStage, type WebhookPayload, type StageChangedEvent } from '@/lib/types';
+import { type Deal, type DealStage, type StageChangedEvent } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -63,7 +64,7 @@ import {
 } from '@/components/ui/tooltip';
 
 
-const WEBHOOK_URL = "https://hook.us2.make.com/minmtau7edpwnsohplsjobkyv6fytvcg";
+const WEBHOOK_URL = "https://hook.us2.make.com/viugk2wulal03ubjoklfm34q12nnd3je";
 
 const stageConfig: Record<
   DealStage,
@@ -417,29 +418,52 @@ export const KanbanBoard = ({ onEditDeal }: KanbanBoardProps) => {
         eventType: "saleflow.stage.changed",
         eventId: eventId,
         dealId: deal.id,
+        dealName: deal.title,
         title: deal.title,
         description: deal.description || null,
-        previousStage: deal.stage,
-        newStage: newStage,
         value: deal.amount,
         currency: deal.currency,
+        previousStage: deal.stage,
+        newStage: newStage,
         client: {
-            id: deal.contact?.id || null,
             name: deal.contact?.name || null,
             email: deal.contact?.email || null,
             phone: contactDoc?.data()?.phone || null,
         },
         company: {
-            name: deal.company?.name || null
+            name: deal.company?.name || null,
+            rut: null,
+            address: null,
+        },
+        contact: {
+             email: deal.contact?.email || null,
+             phone: contactDoc?.data()?.phone || null,
         },
         owner: {
-            userId: deal.ownerId,
-            email: ownerDoc.data()?.email || null
+            id: deal.ownerId,
+            name: ownerDoc.data()?.displayName || null,
+            email: ownerDoc.data()?.email || null,
         },
+        pipeline: {
+            id: null,
+            name: null,
+        },
+        meta: {
+            userAgent: null,
+            ip: null,
+            location: null,
+        },
+        customFields: {
+            campo1: null,
+            campo2: null,
+            campo3: null,
+        },
+        appUrl: appBaseUrl,
+        source: deal.source || null,
+        tags: null,
+        notes: deal.internalNotes || null,
         createdAt: getTimestampAsDate(deal.createdAt)?.toISOString() || new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        appUrl: appBaseUrl,
-        dealUrl: `${appBaseUrl}/saleflow?dealId=${deal.id}`,
     };
 
     const startTime = Date.now();
@@ -533,3 +557,5 @@ export const KanbanBoard = ({ onEditDeal }: KanbanBoardProps) => {
     </DndContext>
   );
 };
+
+    

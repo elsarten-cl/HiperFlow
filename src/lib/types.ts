@@ -60,6 +60,8 @@ export type Deal = {
   status: "activo" | "cerrado" | "descartado";
   createdAt: Date | Timestamp | FieldValue;
   updatedAt: Date | Timestamp | FieldValue;
+  source?: string;
+  internalNotes?: string;
 };
 
 
@@ -236,19 +238,57 @@ export interface FlowCreatedEvent extends BaseWebhookPayload {
 
 // Specific event for when a deal's stage is changed
 export interface StageChangedEvent {
-  eventType: 'saleflow.stage.changed';
+  eventType: "saleflow.stage.changed";
+  eventId: string;
   dealId: string;
+  dealName: string;
   title: string;
-  previousStage: string;
-  newStage: string;
-  clientName: string | null;
+  description: string | null;
   value: number;
   currency: string;
-  contactEmail: string | null;
-  createdAt: string;
+  previousStage: string;
+  newStage: string;
+  client: {
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+  };
+  company: {
+    name: string | null;
+    rut: string | null;
+    address: string | null;
+  };
+  contact: {
+      email: string | null;
+      phone: string | null;
+  };
+  owner: {
+    id: string;
+    name: string | null;
+    email: string | null;
+  };
+  pipeline: {
+      id: string | null;
+      name: string | null;
+  };
+  meta: {
+      userAgent: string | null;
+      ip: string | null;
+      location: string | null;
+  };
+  customFields: {
+      [key: string]: any;
+  } | null;
   appUrl: string;
+  source: string | null;
+  tags: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 
 // A union type for all possible webhook payloads
 export type WebhookPayload = FlowCreatedEvent | StageChangedEvent;
+
+    
